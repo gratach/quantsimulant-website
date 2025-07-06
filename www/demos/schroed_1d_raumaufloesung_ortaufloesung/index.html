@@ -1,0 +1,815 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title></title>
+	<meta charset="utf-8"/>
+    <meta content="">
+    <style></style>
+	</head>
+	<body>
+		<button onclick = "neustart()" left = "50px" top = "30px" id = "neustart">Neustart</button>
+		<button onclick = "zufallsvektor()" left = "50px" top = "30px" id = "startstop">Zufallsvektor</button>
+		Masse: <input type="number" onchange = "parameter_auslesen()" step = "any" id = "mas" placeholder="1"></input>
+		Zeitschritte:<input type="number" onchange = "parameter_auslesen()" step = "any" id = "zeitschr" placeholder="0,3"></input>
+		Gitterpunkte:<input type="number" onchange = "parameter_auslesen()" step = "any" id = "gitterpunkte" placeholder="1"></input>
+		Aktuelle Zeit:<input type="number" onchange = "parameter_auslesen()" step = "any" id = "zeit" placeholder="0"></input>
+		Ordnung:<input type="number" onchange = "parameter_auslesen()" step = "any" id = "ordnung" placeholder="0"></input>
+		Zeitintervall:<input type="number" onchange = "parameter_auslesen()" step = "any" id = "stoppzeit" placeholder="0"></input>
+		Raumintervall:<input type="number" onchange = "parameter_auslesen()" step = "any" id = "breite" placeholder="0"></input>
+		<font id = "quaddiff"></font>
+		<a href="" position = "absolute" id="a"> </a>
+		<canvas id = "canv" height = 1000 width = 2000></canvas>
+		<script src="main.js"></script>
+		<script>
+			var werkzeuge = [];
+			var komponenten = [];
+				
+			var canvas = document.getElementById("canv");
+			var ctx = canvas.getContext("2d");
+			
+			var startstop_button = document.getElementById("startstop");
+			
+			var zeit_anzeige = document.getElementById("zeit");
+			var zeit = 0;
+			
+			var stoppzeit_anzeige = document.getElementById("stoppzeit");
+			var stoppzeit = 500;
+			
+			var ordnung_anzeige = document.getElementById("ordnung");
+			var ordnung = 100;
+			
+			var zeitschritte_anzeige = document.getElementById("zeitschr");
+			var zeitschritte = 1000;
+			
+			var gitterpunkte_anzeige = document.getElementById("gitterpunkte");
+			var gitterpunkte = 1000;
+			
+			var masse_anzeige = document.getElementById("mas");
+			var masse = 1;
+			
+			var breite_anzeige = document.getElementById("breite");
+			var breite = 1000;
+			
+			var quaddiff_anzeige = document.getElementById("quaddiff");
+			
+			var malen = false;
+			
+			var xalt = null;
+			var yaly = null;
+			
+			var xoffset = 0;
+			var xstretch = 1;
+			
+			var yoffset = 500;
+			var ystretch = -6000;
+			
+			var wellnorm = 0.01;
+			var wellenberge = 1;
+			
+			var pinsel;
+			var messort;
+			
+			var gitterPunktAbstand = 1;
+			var zeitschritt = stoppzeit / zeitschritte;
+			
+			
+			var zeitschritte_pro_frame = 20;
+			
+			var bildschirmbreite = 1900;
+			var bildschirmhoehe = 1000;
+			
+			var yskal = -1/10;
+			
+			var aktiv = false;
+			var berechnen;
+			var koord;
+			var zerleg;
+			var cbuff;
+			
+			var framezahl = 0;
+			
+			function parameter_auslesen(){
+				var aufl = document.getElementById("aufl");
+				zeit = Number(zeit_anzeige.value);
+				stoppzeit = Number(stoppzeit_anzeige.value);
+				ordnung = Number(ordnung_anzeige.value);
+				zeitschritte = Number(zeitschritte_anzeige.value);
+				gitterpunkte = Number(gitterpunkte_anzeige.value);
+				masse = Number(masse_anzeige.value);
+				breite = Number(breite_anzeige.value);
+				parameter_anzeigen();
+			}
+			function parameter_anzeigen(){
+				var aufl = document.getElementById("aufl");
+				zeit_anzeige.value = zeit;
+				stoppzeit_anzeige.value = stoppzeit;
+				ordnung_anzeige.value = ordnung;
+				zeitschritte_anzeige.value = zeitschritte;
+				gitterpunkte_anzeige.value = gitterpunkte;
+				masse_anzeige.value = masse;
+				breite_anzeige.value = breite;
+			}
+			function parameter_aendern(){
+				
+				if(!berechnen){
+					
+				}
+			}
+			function neustart(){
+				zeit = 0;
+				framezahl = 0;
+				zeit_anzeige.value = 0; 
+				if(!aktiv)
+					window.requestAnimationFrame(dauerzeichnen);
+				aktiv = true;
+				zeitschritt = stoppzeit / zeitschritte;
+				berechnen = new schroed_D1D_berechnen(gitterpunkte, 0, breite, masse, zeit, zeitschritt);
+				koord = new koord_D(bildschirmbreite, bildschirmhoehe, 0, yoffset, breite, yskal);
+				getvek_class().fuelle(zerleg.ptr, 0);
+				//setzeSin(neuber.vek.neu.getarr(), gitterpunkte, 30, 0.05);
+				cbuff = new vekCD1D(gitterpunkte, 0, breite, 0, null);
+				//zerleg.arr[7] = 999;//- 0.05 * len;
+				//alert(berechnen.vek.neu.ptr +" "+berechnen.vek.neu.len+" "+zerleg.modenptr+" "+zerleg.ord);
+				schwingungs_zer(neuber.vek.neu.ptr, neuber.vek.neu.len, neuzer.modenptr, neuzer.ord, masse, zeit);
+			}
+			document.onmousemove = bewegeMaus;
+			canvas.onmousedown = function(event) {malen=true;};
+			canvas.onmouseup = function(event) {malen=false;};
+			canvas.onmouseenter = function(e) {
+				xalt = posxzufuncx(e.clientX);
+				yalt = posyzufuncy(e.clientY);
+			};
+			
+			function posxzufuncx(x)
+			{
+			    return x * breite / bildschirmbreite;
+			}
+			function posyzufuncy(y)
+			{
+			    return (y-yoffset) * yskal / bildschirmhoehe;
+			}
+
+			function bewegeMaus(e){
+				var x = posxzufuncx(e.clientX-canvas.getBoundingClientRect().left);
+				var y = posyzufuncy(e.clientY-canvas.getBoundingClientRect().top);
+				
+				var pot = getpot();
+				var laenge = pot.length;
+				
+				//console.log(x);
+				if(malen)
+				{
+					var xvon;
+					var xzu;
+					var yvon;
+					var yzu;
+					if(x < xalt)
+					{
+						xvon = x;
+						yvon = y;
+						xzu = xalt;
+						yzu = yalt;
+					}
+					else
+					{
+						xvon = xalt;
+						yvon = yalt;
+						xzu = x;
+						yzu = y;
+					}
+					for(let i = Math.max(Math.floor(xvon), 0);i<Math.min(Math.ceil(xzu),laenge);i++){
+						pot[i] = (i-xvon)*(yzu -yvon)/(xzu-xvon) + yvon;
+						//console.log(i);
+						//console.log((i-xvon)*(yzu -yvon));
+					}
+					potentialerneuert = true;
+					messort = e.clientX-canvas.getBoundingClientRect().left;
+				}
+				xalt = x;
+				yalt = y;
+			}
+			
+			function start_stop(){
+				aktiv = !aktiv;
+				startstop_button.textContent = aktiv ? "Pause" : "Start";
+			}
+			
+			
+			function laden(e){
+				var files = e.target.files; // FileList object
+
+				// files is a FileList of File objects. List some properties.
+				var output = [];
+				for (var i = 0, f; f = files[i]; i++) {
+					var arr = buffer_aus_Datei(f).then((arr) => {
+						leseAlleSegmente(arr, new lesevorgang(0));
+					});
+				}
+			}
+			function SchribeFloat(zahl){
+				var v = new Float32Array(1);
+				v[0] = zahl;
+				return v;
+			}
+			function LeseFloat(buff){
+				return new Float32Array(buff)[0];
+			}
+			
+			function zeichnen(){
+				
+				var vek = getvek();
+				var pot = getpot();
+				
+				ctx.clearRect(0,0,canvas.width, canvas.height);
+				var len = vek.length;
+				
+				/*ctx.beginPath();
+				ctx.strokeStyle = "rgb(0,0,255)";
+				for(let i=0;i<len;i+=aufloesung)
+				{
+					ctx.lineTo(xoffset + i*xstretch,yoffset + vek[i*2]*ystretch);
+				}
+				ctx.stroke();
+				
+				ctx.beginPath();
+				ctx.strokeStyle = "rgb(255,0,0)";
+				for(let i=0;i<len;i+=1)
+				{
+					ctx.lineTo(xoffset + i*xstretch,yoffset + vek[i*2 + 1]*ystretch);
+				}
+				ctx.stroke();
+				
+				ctx.beginPath();
+				ctx.strokeStyle = "rgb(0,0,0)";
+				for(let i=0;i<len;i+=aufloesung)
+				{
+					ctx.lineTo(xoffset + i*xstretch,yoffset + pot[i]*ystretch);
+				}
+				ctx.stroke();*/
+				koord.zeichnen(ctx, berechnen.vek.neu.wertbeiR, zeit, "rgb(255,255,0)");
+				koord.zeichnen(ctx, berechnen.vek.neu.wertbeiI, zeit, "rgb(255,0,0)");
+				koord.zeichnen(ctx, cbuff.wertbeiR, zeit, "rgb(0,255,255)");
+				koord.zeichnen(ctx, cbuff.wertbeiI, zeit, "rgb(0,255,0)");
+				koord.zeichnen(ctx, getpot_class().wertbeiptr, zeit, "rgb(0,0,0)");
+				//koord.zeichnen(ctx, zerleg.ptr, zeit);
+				
+				/*ctx.moveTo(xoffset,yoffset);
+				ctx.beginPath();
+				ctx.strokeStyle = "rgb(0,0,255)";
+				for(let i=0;i<laenge;i+=aufloesung)
+				{
+					ctx.lineTo(xoffset + i*xstretch,yoffset + vek[i*2]*ystretch);
+				}
+				ctx.stroke();
+
+				ctx.moveTo(xoffset,yoffset);
+				ctx.beginPath();
+				ctx.strokeStyle = "rgb(255,0,0)";
+				for(let i=0;i<laenge;i+=aufloesung)
+				{
+					ctx.lineTo(xoffset + i*xstretch,yoffset + vek[i*2 + 1]*ystretch);
+				}
+				ctx.stroke();
+				
+				//Zusammensetzung Real
+				ctx.moveTo(xoffset,yoffset);
+				ctx.beginPath();
+				ctx.strokeStyle = "rgb(0,255,255)";
+				for(let i=0;i<laenge;i+=aufloesung)
+				{
+					ctx.lineTo(xoffset + i*xstretch,yoffset +schwingungsZusammensetzung[i*2]*ystretch);
+				}
+				ctx.stroke();
+				//Zusammensetzung Imaginaer
+				ctx.moveTo(xoffset,yoffset);
+				ctx.beginPath();
+				ctx.strokeStyle = "rgb(255,0,140)";
+				for(let i=0;i<laenge;i+=aufloesung)
+				{
+					ctx.lineTo(xoffset + i*xstretch,yoffset + schwingungsZusammensetzung[i*2 + 1]*ystretch);
+				}
+				ctx.stroke();
+
+				ctx.moveTo(xoffset,yoffset);
+				ctx.beginPath();
+				ctx.strokeStyle = "rgb(240,122,0)";
+				for(let i=0;i<laenge;i+=aufloesung)
+				{
+					ctx.lineTo(xoffset + i*xstretch,yoffset + betr_quad[i]*ystretch*100);
+				}
+				ctx.stroke();
+
+				ctx.moveTo(xoffset,yoffset);
+				ctx.beginPath();
+				ctx.strokeStyle = "rgb(0,0,0)";
+				for(let i=0;i<laenge;i+=aufloesung)
+				{
+					ctx.lineTo(xoffset + i*xstretch,yoffset + pot[i]*ystretch);
+				}
+				ctx.stroke();
+				
+				ctx.moveTo(messort,0);
+				ctx.strokeStyle = "rgb(0,0,0)";
+				ctx.beginPath();
+				ctx.lineTo(messort,0);
+				ctx.lineTo(messort,canvas.height);
+				ctx.stroke();*/
+			}
+			
+			function SchwingungsZerlegung(){
+				Module.ccall('SchwingungsZerlegung', 'null', ['number','number','number','number','number'], [getvek_buff(), laenge, schwingungsAnteile_buff, Dreh(), ordnung]);
+			}
+			
+			function Dreh(){
+				return zeit*Math.PI*Math.PI/(2*masse*laenge*laenge);
+			}
+			
+			function setzeSin(vek, len, n, norm){
+				var mul = n*Math.PI/(len-1);
+				for(let i = 0;i<len;i+=1){
+					vek[i*2] = Math.sin(i*mul) * norm;
+					vek[i*2+1] = 0;
+				}
+			}
+			
+			function getpot(){
+				return berechnen.pot.neu.getarr();
+			}
+			function getpot_class(){
+				return berechnen.pot.neu;
+			}
+			function getvek(){
+				return berechnen.vek.neu.getarr();
+			}
+			function getvek_class(){
+				return berechnen.vek.neu;
+			}
+			function PotNull(){
+				var pot = getpot();
+				for( let i = 0; i < laenge; i++)
+					pot[i] = 0;
+			}
+			
+			class schroed_D1D_berechnen{
+				constructor(len, xanf, xend, mass, zeit, zeischritt){
+					this.len = len;
+					this.breite = xend - xanf;
+					this.mass = mass;
+					this.zeit = zeit;
+					this.vek = new doppelvekCD1D(len,  xanf, xend, zeit, null);
+					this.pot = new doppelvekD1D(len,  xanf, xend, zeit, null);
+					this.rkm = new rungekuttamatrix(4, [0,0.5, 0.5,0,0.5,0.5,0,0,1,1,1.0/6,1.0/3,1.0/3,1.0/6]);
+					this.eul = new D1D_pot_euler_vektoraenderung(this.pot, mass, this.breite / len);
+					this.add = new D_vektoraddieren(len * 2);
+					this.run = new rungekutta_D(this.vek, this.pot, this.rkm, this.eul, this.add, zeischritt);
+					this.fertig = ()=>{
+						this.vek.fertig();
+						this.pot.fertig();
+						this.rkm.fertig();
+						this.eul.fertig();
+						this.add.fertig();
+						this.run.fertig();
+					};
+					this.iteration = ()=>{
+						this.run.iteration();
+						this.vek.neu.zeit = this.vek.alt.zeit + zeitschritt;
+					};
+				}
+			}
+			
+			class vekD1D{
+				constructor(len, xanf, xend, zeit, beschr){
+					this.len = len;
+					this.xanf = xanf;
+					this.xend = xend;
+					this.breite = xend - xanf;
+					this.ptr = Module._malloc(len*8);
+					this.wertbeiptr = vekD1D.neuwertbei(this.ptr, len, xanf, xend);//, zeit);
+					this.get = (nr) => {return getf64(this.ptr + nr*8);};
+					this.set = (nr, wert) => {return setf64(this.ptr + nr*8, wert);};
+					this.getarr = () => {return getDArrVonPtr(this.ptr, len)};
+					this.fertig = ()=>{
+						Module._free(this.ptr);
+					};
+					komponenten.push(this);
+				}
+				get bytelen(){return this.len*8;}
+			}
+			vekD1D.neuwertbei =  Module.cwrap('mache_DArr', 'number', ['number','number','number','number']);
+			vekD1D.entfwertbei =  Module.cwrap('free_DArr', null, ['number']);
+			
+			
+			class vekCD1D{
+				constructor(len, xanf, xend, zeit, beschr){
+					this.len = len;
+					this.xanf = xanf;
+					this.xend = xend;
+					this.zeit = zeit;
+					this.breite = xend - xanf;
+					this.ptr = Module._malloc(len*16);
+					this.wertbei = vekCD1D.neuwertbei(this.ptr, len, xanf, xend);//, zeit);
+					this.wertbeiR = vekCD1D.neuwertbeiR(this.wertbei);
+					this.wertbeiI = vekCD1D.neuwertbeiI(this.wertbei);
+					this.wertbeiQ = vekCD1D.neuwertbeiQ(this.wertbei);
+					this.getre = (nr) => {return getf64(this.ptr + nr*16);};
+					this.setre = (nr, wert) => {return setf64(this.ptr + nr*16, wert);};
+					this.getim = (nr) => {return getf64(this.ptr + nr*16 + 8);};
+					this.setim = (nr, wert) => {return setf64(this.ptr + nr*16 + 8, wert);};
+					this.getarr = () => {return getDArrVonPtr(this.ptr, len * 2)};
+					this.fuelle = (ptr, zeitp) => {
+						vekCD1D.fuelle(this.ptr, this.len, ptr, this.xanf, (this.xend-this.xanf)/(this.len - 1), zeitp); 
+						this.zeit = zeitp;
+					};
+					this.fertig = ()=>{
+						Module._free(this.ptr);
+						entfwertbei(this.wertbeiptr);
+						vekCD1D.entfwertbeiX(this.wertbeiR);
+						vekCD1D.entfwertbeiX(this.wertbeiI);
+						vekCD1D.entfwertbeiX(this.wertbeiQ);
+					};
+					komponenten.push(this);
+				}
+				get bytelen(){return this.len*16;}
+			}
+			vekCD1D.neuwertbei =  Module.cwrap('mache_CDArr', 'number', ['number','number','number','number']);
+			vekCD1D.neuwertbeiR =  Module.cwrap('mache_CDR_wertbei', 'number', ['number']);
+			vekCD1D.neuwertbeiI =  Module.cwrap('mache_CDI_wertbei', 'number', ['number']);
+			vekCD1D.neuwertbeiQ =  Module.cwrap('mache_CDQ_wertbei', 'number', ['number']);
+			vekCD1D.entfwertbei =  Module.cwrap('free_CDArr', null, ['number']);
+			vekCD1D.entfwertbeiX =  Module.cwrap('free_CDR_CDI_CDQ_wertbei', null, ['number']);
+			vekCD1D.fuelle = Module.cwrap('fuelle_CDArr', null, ['number', 'number', 'number', 'number', 'number', 'number']);
+			
+			function getDArrVonPtr(ptr, len){
+				var p = ptr >> 3;
+				return Module.HEAPF64.subarray(p, p + len);
+			}
+			function getCDWertBei(ptr, raum, zeit){
+				
+			}
+			class doppelvekD1D{
+				constructor(gitterpunkte, xanf, xend, zeit, beschr){
+					this.len = gitterpunkte;
+					this.p1 = new vekD1D(gitterpunkte, xanf, xend, zeit, beschr);
+					this.p2 = new vekD1D(gitterpunkte, xanf, xend, zeit, beschr);
+					this.vertauscht = false;
+					this.wertbeiptr = vekD1D.neuwertbei(this.p1, gitterpunkte, xanf, xend);//, zeit);
+					this.tausche = () => {
+						doppelvekD1D.tausche(this.wertbeiptr, this.neu);
+						this.vertauscht = !this.verauscht;
+					}
+					this.fertig = ()=>{
+						Module._free(this.p1);
+						Module._free(this.p2);
+						entfwertbei(this.wertbeiptr);
+					};
+					this.altzuneu = () => {
+						var alt = this.alt;
+						var neu = this.neu;
+						copy_vek(neu, alt, 8 * this.len);
+					}
+					komponenten.push(this);
+				}
+				get alt(){return this.vertauscht ? this.p2 : this.p1;}
+				get neu(){return this.vertauscht ? this.p1 : this.p2;}
+			}
+			doppelvekD1D.tausche = Module.cwrap('tausche_DArr', null, ['number', 'number']);
+			
+			class doppelvekCD1D{
+				constructor(gitterpunkte, xanf, xend, zeit, beschr){
+					this.p1 = new vekCD1D(gitterpunkte, xanf, xend, zeit, beschr);
+					this.p2 = new vekCD1D(gitterpunkte, xanf, xend, zeit, beschr);
+					this.vertauscht = false;
+					this.wertbeiptr = vekCD1D.neuwertbei(this.p1, gitterpunkte, xanf, xend);//, zeit);
+					this.tausche = () => {
+						doppelvekCD1D.tausche(this.wertbeiptr, this.neu);
+						this.vertauscht = !this.vertauscht;
+					}
+					this.fertig = ()=>{
+						Module._free(this.p1);
+						Module._free(this.p2);
+						entfwertbei(this.wertbeiptr);
+					};
+					this.altzuneu = () => {
+						var alt = this.alt;
+						var neu = this.neu;
+						copy_vek(neu, alt, 16 * this.len);
+					}
+					komponenten.push(this);
+				}
+				get alt(){return this.vertauscht ? this.p2 : this.p1;}
+				get neu(){return this.vertauscht ? this.p1 : this.p2;}
+			}
+			doppelvekCD1D.tausche = Module.cwrap('tausche_CDArr', null, ['number', 'number']);
+			
+			class rungekuttamatrix{
+				constructor(ord, arr){
+					this.structptr = rungekuttamatrix.mache(ord);
+					this.ptr = rungekuttamatrix.getarr(this.structptr);
+					this.arr = getDArrVonPtr(this.ptr, 2 * ord + ord*(ord-1)/2);
+					this.arr.set(arr);
+					this.ordnung = ord;
+					this.fertig = ()=>{
+						rungekuttamatrix.free(structptr);
+					};
+				}
+				
+			}
+			rungekuttamatrix.mache = Module.cwrap('mache_rungekuttamatrix_D', 'number', ['number']);
+			rungekuttamatrix.free = Module.cwrap('free_rungekuttamatrix_D', null, ['number']);
+			rungekuttamatrix.getarr = Module.cwrap('get_rungekuttamatrix_D_ptr', 'number', ['number']);
+			
+			class D_vektoraddieren{
+				constructor(len){
+					this.ptr = D_vektoraddieren.mache(len);
+					this.fertig = ()=>{
+						D_vektoraddieren.free(this.ptr);
+					}
+				}
+			}
+			D_vektoraddieren.mache = Module.cwrap('mache_D_vektoraddieren', 'number', ['number']);
+			D_vektoraddieren.free = Module.cwrap('free_D_vektoraddieren', null, ['number']);
+			
+			class D1D_pot_euler_vektoraenderung{
+				constructor(doppelpot, masse, gitterabstand){
+					this.ptr = D1D_pot_euler_vektoraenderung.mache(doppelpot.alt.ptr, doppelpot.neu.ptr, doppelpot.len, 1/(2*masse*gitterabstand*gitterabstand));
+					this.fertig = ()=>{
+						D1D_pot_euler_vektoraenderung.free(this.ptr);
+					}
+					this.setzepot = ()=>{D1D_pot_euler_vektoraenderung.potsetzen(this.ptr ,doppelpot.alt.ptr, doppelpot.neu.ptr);}
+					this.setzeparam  = (masse, gitterabstand)=>{D1D_pot_euler_vektoraenderung.laplacegewichtsetzen(this.ptr ,1/(2*masse*gitterabstand*gitterabstand));}
+				}
+			}
+			D1D_pot_euler_vektoraenderung.mache = Module.cwrap('mache_D1D_pot_euler_vektoraenderung', 'number', ['number','number','number','number']);
+			D1D_pot_euler_vektoraenderung.free = Module.cwrap('free_D1D_pot_euler_vektoraenderung', null, ['number']);
+			D1D_pot_euler_vektoraenderung.potsetzen = Module.cwrap('potsetzen_D1D_pot_euler_vektoraenderung', null, ['number','number','number']);
+			D1D_pot_euler_vektoraenderung.laplacegewichtsetzen = Module.cwrap('laplacegewichtungsetzen_D1D_pot_euler_vektoraenderung', null, ['number','number']);
+			
+			class rungekutta_D{
+				constructor(dvek, dpot, matrix, eul, vadd, zeitschritt){
+					this.gitterabstand = dvek.gitterabstand;
+					this.len = dvek.len;
+					this.vek = dvek;
+					this.pot = dpot;
+					this.matrix = matrix;
+					this.vadd = vadd;
+					this.eul = eul;
+					this.ptr = rungekutta_D.mache(this.vek.alt.ptr, this.vek.neu.ptr, matrix.ordnung, this.vek.alt.bytelen,eul.ptr,  vadd.ptr, matrix.ptr, zeitschritt);
+					this.iteration = ()=>{
+						this.vek.tausche();
+						//this.eul.setzepot();
+						this.veksetzen();
+						mache_arbeiter(this.ptr);
+						//this.pot.altzuneu();
+					}
+					this.veksetzen = () => {
+						var alt = this.vek.alt;
+						var neu = this.vek.neu;
+						//alert("veksetzen: "+alt.getarr()[40]+"und"+neu.getarr()[40]);
+						rungekutta_D.veksetzen(this.ptr, alt.ptr, neu.ptr);
+					}
+					
+				}
+				
+			}
+			rungekutta_D.veksetzen = Module.cwrap('veksetzen_rungekutta_D', null, ['number','number','number']);
+			rungekutta_D.mache = Module.cwrap('mache_rungekutta_D', 'number', ['number','number','number','number','number','number','number','number']);
+			rungekutta_D.free = Module.cwrap('free_rungekutta_D', null, ['number']);
+			class koord_D{
+				constructor(breite, hoehe, xnull, ynull,innenbreite, innenhoehe){
+					this.breite = breite;
+					this.hoehe = hoehe;
+					this.xnull = xnull;
+					this.ynull = ynull;
+					this.xstretch = innenbreite/(breite - 1);
+					this.ystretch = - innenhoehe / (hoehe - 1);
+					this.xanf = xnull / xstretch;
+					this.innenhoehe = innenhoehe;
+					this.innenbreite = innenbreite;
+					this.zeichnen = (ctx, vek, zeit, farbe)=>
+					{
+						ctx.beginPath();
+						ctx.strokeStyle = farbe;
+						let f = this.xanf;
+						for(let i=0;i<breite;i+=1)
+						{
+							let wb = d_wertbei(vek, f, zeit);
+							ctx.lineTo(i, this.ynull + wb*ystretch);
+							f += this.xstretch;
+						}
+						ctx.stroke();	
+					}
+				}
+			}
+			
+			class kasten_moden_D{
+				constructor(ord, xanf, xend, mass){
+					this.ord = ord;
+					this.xanf = xanf;
+					this.xend = xend;
+					this.mass = mass;
+					this.ptr = kasten_moden_D.mache(ord, xanf, xend, mass);
+					this.modenptr = kasten_moden_D.getmoden(this.ptr);
+					this.arr = getDArrVonPtr(this.modenptr, (ord + 1) * 2);
+					this.fertig = ()=>{kasten_moden_D.free(this.ptr);};
+				}
+			}
+			kasten_moden_D.mache = Module.cwrap('mache_kasten_moden_D', 'number', ['number','number','number','number']);
+			kasten_moden_D.free = Module.cwrap('free_kasten_moden_D', null, ['number']);
+			kasten_moden_D.getmoden = Module.cwrap('getmoden_kasten_moden_D', 'number', ['number']);
+			
+			
+			
+			var getf64;
+			var setf64;
+			var re_d_wertbei = Module.cwrap('re_d_wertbei', 'number', ['number','number','number']);
+			var im_d_wertbei = Module.cwrap('im_d_wertbei_nachreichen', 'number', []);
+			var d_wertbei = Module.cwrap('d_wertbei', 'number', ['number','number','number']);
+			var schwingungs_zer = Module.cwrap('DSchwingungsZerlegung', null, ['number','number','number','number','number','number']);
+			var schwingungs_zus = Module.cwrap('DSchwingungsZusammensetzung', null, ['number','number','number','number','number','number']);
+			var CDquad_diff = Module.cwrap('CDquad_diff', 'number', ['number','number','number','number']); 
+			var mache_arbeiter;
+			var copy_vek;
+			function bereit(){
+				getf64 = Module.cwrap('getf64', 'number', ['number']);
+				setf64 = Module.cwrap('setf64', null, ['number','number']);
+				mache_arbeiter = Module.cwrap('mache_arbeiter', null, ['number']);
+				copy_vek = Module.cwrap('copy_vek', null, ['number','number','number']);
+					
+				/*var len = 1000;
+				var ho = 1000;
+				//zeitschritt = 1414.710605/4000;
+				berechnen = new schroed_D1D_berechnen(len, 0, len, masse, zeit, zeitschritt);
+				koord = new koord_D(len, ho, 0, ho / 2, len, -ho/ystretch);
+				setzeSin(berechnen.vek.neu.getarr(), len, 30, 0.05);
+				zerleg = new kasten_moden_D(30,  0, len, masse);
+				cbuff = new vekCD1D(len, 0, len, 0, null);
+				//zerleg.arr[7] = 999;//- 0.05 * len;
+				//alert(berechnen.vek.neu.ptr +" "+berechnen.vek.neu.len+" "+zerleg.modenptr+" "+zerleg.ord);
+				schwingungs_zer(berechnen.vek.neu.ptr, berechnen.vek.neu.len, zerleg.modenptr, zerleg.ord, masse, zeit);
+				alert(zerleg.arr[60] + " "+ zerleg.arr[61]);*/
+				parameter_anzeigen();
+				zufallsvektor();
+				neustart();
+				zeichnen();
+				//window.requestAnimationFrame(dauerzeichnen);
+				
+				//Module._free(buf);
+			}
+			
+			function zufallsvektor(){
+				zerleg = new kasten_moden_D(ordnung,  0, breite, masse);
+				let arr = zerleg.arr;
+				for(let i = ordnung * 2 + 1; i > 1; i--)
+					arr[i] = (Math.random()-0.5)*0.03;
+			}
+			
+			function dauerzeichnen(){
+				if(aktiv){
+					for(let i =0;i<zeitschritte_pro_frame; i++){
+						if(framezahl < zeitschritte){
+							berechnen.iteration();
+							zeit += zeitschritt;
+							framezahl += 1;
+						}
+						else
+							aktiv = false;
+					}
+					cbuff.fuelle(zerleg.ptr, zeit);
+				
+					//var bufarr = cbuff.getarr();
+					quaddiff_anzeige.textContent = ""+CDquad_diff(berechnen.vek.neu.ptr, cbuff.ptr, cbuff.len, cbuff.breite);
+				
+					/*for(let i = 0; i < zeitschritte_pro_frame && aktiv && !testeStopp(); i++)
+					{
+						int0oder1 = Module.ccall('iteration', 'int', ['number'], [1]);
+					
+					}
+					Module.ccall('SchwingungsZusammensetzung', 'null', ['number','number','number','number','number'], [schwingungsAnteile_buff, schwingungsZusammensetzung_buff, laenge, Dreh(), ordnung]);*/
+					zeit_anzeige.value = zeit;
+					zeichnen();
+					window.requestAnimationFrame(dauerzeichnen);
+				}
+			}
+			
+			
+			
+			
+
+			function findeDoppelpunkt(arr, start){
+				arr = new Uint8Array(arr);
+				var i = start.pos;
+				while(i < arr.byteLength){
+					if(arr[i] == 58)
+					{
+						var dec = new TextDecoder();
+						start.wert = dec.decode(arr.slice(start.pos, i));
+						start.pos = i + 1;
+						return;
+					}
+					i++;
+				}
+				return null;
+			}
+			
+			function schreibeSegment(arr, name, segm_arr){
+				name += ":";
+				var encoder = new TextEncoder()
+				var textenc = encoder.encode(name);
+				arr.push(textenc);
+				var blo = new Blob(segm_arr);
+				schreibeUInt(arr, blo.size);
+				arr.push(blo);
+;				
+			}
+			function schreibeUInt(arr, nummer){
+				var zahl = new Uint32Array(1);
+				zahl[0] = nummer;
+				arr.push(zahl);
+			}
+			
+			function buffer_aus_Datei(f){
+				return new Promise((resolve, reject) => {
+						var reader = new FileReader();
+						reader.onload = () => { resolve(reader.result ); };
+						reader.readAsArrayBuffer(f);
+					});
+			}
+			
+			function leseAlleSegmente(arrbuff, i){
+				while(i.pos != null && i.pos < arrbuff.byteLength){
+					findeDoppelpunkt(arrbuff, i);
+					var name = i.wert;
+					leseBlock(arrbuff, i);
+					segmentLaden(name, i.wert);
+					
+				}
+			}
+			
+			function leseBlock(arr, i){
+				leseUInt(arr, i);
+				var laenge = i.wert;
+				i.wert = arr.slice(i.pos, i.pos + laenge);
+				i.pos += laenge;
+				
+			}
+			
+			function testeStopp(){
+				if( stoppzeit < zeit + zeitschritt / 2){
+					start_stop();
+					return true;
+				}
+				return false;
+			}
+			
+			function lesevorgang(pos){
+				this.pos = pos;
+				this.wert = null;
+			}
+			
+			function leseUInt(arrbuff, i){
+				if(arrbuff.byteLength - i.pos < 4)
+					return null;
+				i.wert = new Uint32Array(arrbuff.slice(i.pos, i.pos + 4))[0];
+				i.pos += 4;
+			}
+			
+			function speichern(){
+				var vek = getvek();
+				var pot = getpot();
+				
+				var a = document.getElementById("a");
+				var arr = [];
+				schreibeSegment(arr, "f32_compl_1d_arr", [vek.buffer.slice(vek.byteOffset, vek.byteOffset + vek.byteLength)]);
+				schreibeSegment(arr, "f32_1d_arr", [pot.buffer.slice(pot.byteOffset, pot.byteOffset + pot.byteLength)]);
+				schreibeSegment(arr, "zeit_f32", [SchribeFloat(zeit)]);
+				schreibeSegment(arr, "gitter_punkt_abstand_f32", [SchribeFloat(gitterPunktAbstand)]);
+				schreibeSegment(arr, "zeit_schritt_f32", [SchribeFloat(zeitschritt)]);
+				schreibeSegment(arr, "masse_f32", [SchribeFloat(masse)]);
+				a.href = URL.createObjectURL(new Blob(arr));
+				a.download = 'wave.schroed';
+				a.click();
+			}
+			function segmentLaden(name, buff){
+				if(name == "f32_compl_1d_arr"){
+					var vek = getvek();
+					new Uint8Array(vek.buffer, vek.byteOffset, vek.byteLength).set(new Uint8Array(buff), 0);
+				}else if(name == "f32_1d_arr"){
+					var pot = getpot();
+					new Uint8Array(pot.buffer, pot.byteOffset, pot.byteLength).set(new Uint8Array(buff), 0);
+				}else if(name == "zeit_f32"){
+					zeit = LeseFloat(buff);
+				}else if(name == "gitter_punkt_abstand_f32"){
+					gitterPunktAbstand = LeseFloat(buff);
+				}else if(name == "zeit_schritt_f32"){
+					zeitschritt = LeseFloat(buff);
+				}else if(name == "masse_f32"){
+					masse = LeseFloat(buff);
+				}
+				parameter_anzeigen();
+				parameter_aendern()
+				console.log("das Segment heißt: " + name);
+			}
+			
+		</script>
+	</body>
+</html>

@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title></title>
+	<meta charset="utf-8"/>
+    <meta content="">
+    <style></style>
+	</head>
+	<body>
+		<canvas id = "canv" height = 200 width = 200></canvas>
+		<script src="main.js"></script>
+		<script>
+			var daten;
+				
+			var canvas = document.getElementById("canv");
+			var ctx = canvas.getContext("2d");
+			var hoch = canvas.height;
+			var breit = canvas.width;
+			var laenge = breit*hoch*4;
+			var vek_0;
+			var vek_0_buff;
+			var vek_1;
+			var vek_1_buff;
+			
+			var pot_0;
+			var pot_0_buff;
+			var pot_1;
+			var pot_1_buff;
+			
+			var int0oder1;
+			
+			function zeichnen(){
+				var img = new ImageData(daten, breit, hoch);
+            			ctx.putImageData(img, 0,0);
+			}
+			
+			function getpot(){
+				return int0oder1 == 1 ? pot_0 : pot_1;
+			}
+			function getvek(){
+				return int0oder1 == 0 ? vek_0 : vek_1;
+			}
+
+			function grundwelle(x, y, r, h){
+				var vek = getvek();
+				for(let ix = Math.max(0, x - r); ix < Math.min(breit, x + r); ix++)
+					for(let iy = Math.max(0, y - r); iy < Math.min(hoch, y + r); iy++)
+					{
+						var temp = (ix - x + r)*(x + r - ix)*(iy - y + r)*(y + r - iy);
+						vek[(iy*breit + ix)*2] += temp * temp * h;
+					}
+			}
+				
+			function bereit(){
+				halli = Module.cwrap('halli', 'number', ['number'])
+				console.log(halli(7));
+				
+				var ptr = Module._malloc(laenge);
+				vek_0_buff = Module._malloc(laenge*4*2);
+				vek_1_buff = Module._malloc(laenge*4*2);
+				pot_0_buff = Module._malloc(laenge*4);
+				pot_1_buff = Module._malloc(laenge*4);
+				int0oder1 = Module.ccall('euler_2D_pot_vorbereiten', 'number', ['number','number','number', 'number','number','number','number','number'], [breit,hoch, ptr, vek_0_buff, vek_1_buff, pot_0_buff, pot_1_buff, 0.3]);
+
+				daten = Module.HEAPU8.subarray(ptr, ptr + laenge);
+				daten = new Uint8ClampedArray(daten.buffer, daten.byteOffset, daten.length)
+				for(let i = 0;i<laenge; i++)
+					daten[i] = 255;
+
+				vek_0 = Module.HEAPF32.subarray(vek_0_buff >> 2, (vek_0_buff >> 2) + laenge*2);
+				vek_1 = Module.HEAPF32.subarray(vek_1_buff >> 2, (vek_1_buff >> 2) + laenge*2);
+				
+				pot_0 = Module.HEAPF32.subarray(pot_0_buff >> 2, (pot_0_buff >> 2) + laenge);
+				pot_1 = Module.HEAPF32.subarray(pot_1_buff >> 2, (pot_1_buff >> 2) + laenge);
+				
+				grundwelle(breit / 2, hoch / 2, 20, 1);
+				grundwelle(30, 30, 20, 1);
+
+				console.log(vek_0);
+				console.log(vek_1);
+				
+				zeichnen();
+				window.requestAnimationFrame(dauerzeichnen);
+				
+				//Module._free(buf);
+			}
+			
+			function dauerzeichnen(){
+				int0oder1 = Module.ccall('iteration', 'int', ['null'], null);
+				zeichnen();
+				window.requestAnimationFrame(dauerzeichnen);
+			}
+			
+		</script>
+	</body>
+</html>

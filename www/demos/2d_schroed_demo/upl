@@ -1,0 +1,11 @@
+#!/bin/bash
+./makefile
+rm ../../www/emstes/neu/main.js  ../../www/emstes/neu/main.wasm  ../../www/emstes/neu/index.html
+mv main.js ../../www/emstes/neu
+mv main.wasm ../../www/emstes/neu
+cp index.html ../../www/emstes/neu
+cd ../..
+git add .
+git commit -a
+git push
+ssh git@gratach.de gratach

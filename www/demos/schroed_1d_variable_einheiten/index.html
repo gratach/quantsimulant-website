@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title></title>
+	<meta charset="utf-8"/>
+    <meta content="">
+    <style></style>
+	</head>
+	<body>
+		<button onclick = "speichern()" position = "absolute" left = "50px" top = "30px">Speichern</button>
+		<button onclick = "start_stop()" left = "50px" top = "30px">Start/Stop</button>
+		<input type='file' onchange='laden(event)'></input>
+		<input type="number" onchange = "parameter_auslesen()" id = "aufl" placeholder="1">
+		Masse: <input type="number" onchange = "parameter_auslesen()" step = "any" id = "mas" placeholder="1">
+		Zeitschritt<input type="number" onchange = "parameter_auslesen()" step = "any" id = "zeitschr" placeholder="1">
+		Gitterpunktabstand<input type="number" onchange = "parameter_auslesen()" step = "any" id = "gitterpunktabst" placeholder="1">
+		Zeit<input type="number" onchange = "zeitAendern()" step = "any" id = "zeit" placeholder="0"><br>
+		<a href="" position = "absolute" id="a"> </a>
+		<canvas id = "canv" height = 1000 width = 2000></canvas>
+		<script src="main.js"></script>
+		<script>
+			
+			var aktiv = false;
+			
+			var laenge =1900;
+			var vek_0;
+			var vek_0_buff;
+			var vek_1;
+			var vek_1_buff;
+
+			var betr_quad;
+			var betr_quad_buff;
+			
+			var pot_0;
+			var pot_0_buff;
+			var pot_1;
+			var pot_1_buff;
+			
+			var int0oder1;
+				
+			var canvas = document.getElementById("canv");
+			var ctx = canvas.getContext("2d");
+			
+			var zeit_anzeige = document.getElementById("zeit");
+			var zeitschritt_anzeige = document.getElementById("zeitschr");
+			var gitterPunktAbstand_anzeige = document.getElementById("gitterpunktabst");
+			var masse_anzeige = document.getElementById("mas");
+			
+			var malen = false;
+			
+			var xalt = null;
+			var yaly = null;
+			
+			var xoffset = 0;
+			var xstretch = 1;
+			
+			var yoffset = 500;
+			var ystretch = -30000;
+			
+			var wellnorm = 0.01;
+			var wellenberge = 1;
+			
+			var pinsel;
+			var messort;
+			
+			var aufloesung = 1;
+			var masse = 1;
+			var gitterPunktAbstand = 1;
+			var zeitschritt = 1;
+			var zeit = 1;
+			
+			
+			document.onmousemove = bewegeMaus;
+			canvas.onmousedown = function(event) {malen=true;};
+			canvas.onmouseup = function(event) {malen=false;};
+			canvas.onmouseenter = function(e) {
+				xalt = posxzufuncx(e.clientX);
+				yalt = posyzufuncy(e.clientY);
+			};
+			
+			function posxzufuncx(x)
+			{
+			    return (x - xoffset)/xstretch;
+			}
+			function posyzufuncy(y)
+			{
+			    return (y-yoffset)/ystretch;
+			}
+
+			function bewegeMaus(e){
+				var x = posxzufuncx(e.clientX-canvas.getBoundingClientRect().left);
+				var y = posyzufuncy(e.clientY-canvas.getBoundingClientRect().top);
+				
+				var pot = getpot();
+				
+				//console.log(x);
+				if(malen)
+				{
+					var xvon;
+					var xzu;
+					var yvon;
+					var yzu;
+					if(x < xalt)
+					{
+						xvon = x;
+						yvon = y;
+						xzu = xalt;
+						yzu = yalt;
+					}
+					else
+					{
+						xvon = xalt;
+						yvon = yalt;
+						xzu = x;
+						yzu = y;
+					}
+					for(let i = Math.max(Math.floor(xvon), 0);i<Math.min(Math.ceil(xzu),laenge);i++){
+						pot[i] = (i-xvon)*(yzu -yvon)/(xzu-xvon) + yvon;
+						//console.log(i);
+						//console.log((i-xvon)*(yzu -yvon));
+					}
+					potentialerneuert = true;
+					messort = e.clientX-canvas.getBoundingClientRect().left;
+				}
+				xalt = x;
+				yalt = y;
+			}
+			
+			function start_stop(){
+				aktiv = !aktiv;
+			}
+			
+			
+			function laden(e){
+				var files = e.target.files; // FileList object
+
+				// files is a FileList of File objects. List some properties.
+				var output = [];
+				for (var i = 0, f; f = files[i]; i++) {
+					var arr = buffer_aus_Datei(f).then((arr) => {
+						leseAlleSegmente(arr, new lesevorgang(0));
+					});
+				}
+			}
+			function SchribeFloat(zahl){
+				var v = new Float32Array(1);
+				v[0] = zahl;
+				return v;
+			}
+			function LeseFloat(buff){
+				return new Float32Array(buff)[0];
+			}
+			function parameter_auslesen(){
+				var aufl = document.getElementById("aufl");
+				aufloesung = Number(aufl.value);
+				if(aufloesung < 1)
+				{
+					aufloesung = 1;
+					aufl.value = 1;
+				}
+				masse = Number(masse_anzeige.value);
+				if(masse < 0)
+				{
+					masse = 1;
+					aufl.value = 1;
+				}
+				zeitschritt = Number(zeitschritt_anzeige.value);
+				gitterPunktAbstand = Number(gitterPunktAbstand_anzeige.value);
+				if(gitterPunktAbstand <= 0)
+				{
+					gitterPunktAbstand = 1;
+					aufl.value = 1;
+				}
+				zeit = Number(zeit_anzeige.value);
+				
+				parameter_aendern();
+				parameter_anzeigen();
+			}
+			function parameter_anzeigen(){
+				aufl.value = aufloesung;
+				masse_anzeige.value = masse;
+				zeitschritt_anzeige.value = zeitschritt;
+				gitterPunktAbstand_anzeige.value = gitterPunktAbstand;
+				zeit_anzeige.value = zeit;
+			}
+			function parameter_aendern(){
+				Module.ccall('zeitschritt_aendern', null, ['number'], [zeitschritt]);
+				Module.ccall('laplace_gewichtung_aendern', null, ['number'], [1/(2*masse*gitterPunktAbstand*gitterPunktAbstand)]);
+			}
+			
+			function zeichnen(){
+				
+				var vek = getvek();
+				var pot = getpot();
+				
+				ctx.clearRect(0,0,canvas.width, canvas.height);
+				
+				/**/ctx.moveTo(xoffset,yoffset);
+				ctx.beginPath();
+				ctx.strokeStyle = "rgb(0,0,255)";
+				for(let i=0;i<laenge;i+=aufloesung)
+				{
+					ctx.lineTo(xoffset + i*xstretch,yoffset + vek[i*2]*ystretch);
+				}
+				ctx.stroke();
+
+				ctx.moveTo(xoffset,yoffset);
+				ctx.beginPath();
+				ctx.strokeStyle = "rgb(255,0,0)";
+				for(let i=0;i<laenge;i+=aufloesung)
+				{
+					ctx.lineTo(xoffset + i*xstretch,yoffset + vek[i*2 + 1]*ystretch);
+				}
+				ctx.stroke();
+
+				ctx.moveTo(xoffset,yoffset);
+				ctx.beginPath();
+				ctx.strokeStyle = "rgb(240,122,0)";
+				for(let i=0;i<laenge;i+=aufloesung)
+				{
+					ctx.lineTo(xoffset + i*xstretch,yoffset + betr_quad[i]*ystretch*100);
+				}
+				ctx.stroke();
+
+				ctx.moveTo(xoffset,yoffset);
+				ctx.beginPath();
+				ctx.strokeStyle = "rgb(0,0,0)";
+				for(let i=0;i<laenge;i+=aufloesung)
+				{
+					ctx.lineTo(xoffset + i*xstretch,yoffset + pot[i]*ystretch);
+				}
+				ctx.stroke();
+				
+				ctx.moveTo(messort,0);
+				ctx.strokeStyle = "rgb(0,0,0)";
+				ctx.beginPath();
+				ctx.lineTo(messort,0);
+				ctx.lineTo(messort,canvas.height);
+				ctx.stroke();
+			}
+			
+			function setzeSin(n, mul){
+				var vek = getvek();
+				var mul = n*Math.PI/(laenge-1);
+				for(let i = 0;i<laenge;i+=1){
+					vek[i*2] = Math.sin(i*mul) * wellnorm;
+					vek[i*2+1] = 0;
+				}
+			}
+			
+			function getpot(){
+				return int0oder1 == 1 ? pot_0 : pot_1;
+			}
+			function getvek(){
+				return int0oder1 == 0 ? vek_0 : vek_1;
+			}
+				
+			function bereit(){
+				halli = Module.cwrap('halli', 'number', ['number'])
+				console.log(halli(7));
+				
+				
+				vek_0_buff = Module._malloc(laenge*4*2*2);//DoppelVektor
+				vek_1_buff = Module._malloc(laenge*4*2*2);//DoppelVektor
+				betr_quad_buff = Module._malloc(laenge*4*2);//DoppelVektor
+				pot_0_buff = Module._malloc(laenge*4);
+				pot_1_buff = Module._malloc(laenge*4);
+				int0oder1 = Module.ccall('euler_1D_doppel_vorbereiten', 'number', ['number','number','number','number','number','number','number'], [laenge, vek_0_buff, vek_1_buff, betr_quad_buff, pot_0_buff, pot_1_buff, 1, 1]);
+				
+				parameter_auslesen();
+
+				vek_0 = Module.HEAPF32.subarray(vek_0_buff >> 2, (vek_0_buff >> 2) + laenge*2);
+				vek_1 = Module.HEAPF32.subarray(vek_1_buff >> 2, (vek_1_buff >> 2) + laenge*2);
+				betr_quad = Module.HEAPF32.subarray(betr_quad_buff >> 2, (betr_quad_buff >> 2) + laenge);
+				
+				pot_0 = Module.HEAPF32.subarray(pot_0_buff >> 2, (pot_0_buff >> 2) + laenge);
+				pot_1 = Module.HEAPF32.subarray(pot_1_buff >> 2, (pot_1_buff >> 2) + laenge);
+				
+				setzeSin(wellenberge, wellnorm);
+
+				console.log(vek_0);
+				console.log(vek_1);
+				
+				zeichnen();
+				window.requestAnimationFrame(dauerzeichnen);
+				
+				//Module._free(buf);
+			}
+			
+			function dauerzeichnen(){
+				if(aktiv)
+				{
+					int0oder1 = Module.ccall('iteration', 'int', ['number'], [20]);
+					
+					zeit += zeitschritt*20;
+					zeit_anzeige.value = zeit;
+				}
+				zeichnen();
+				window.requestAnimationFrame(dauerzeichnen);
+			}
+			
+			
+			
+			
+
+			function findeDoppelpunkt(arr, start){
+				arr = new Uint8Array(arr);
+				var i = start.pos;
+					console.log(arr);
+				while(i < arr.byteLength){
+					if(arr[i] == 58)
+					{
+						var dec = new TextDecoder();
+						console.log("abc");
+						console.log(dec.decode(arr.slice(start.pos, i)));
+						start.wert = dec.decode(arr.slice(start.pos, i));
+						start.pos = i + 1;
+						return;
+					}
+					i++;
+				}
+				return null;
+			}
+			
+			function schreibeSegment(arr, name, segm_arr){
+				name += ":";
+				var encoder = new TextEncoder()
+				var textenc = encoder.encode(name);
+				arr.push(textenc);
+				var blo = new Blob(segm_arr);
+				schreibeUInt(arr, blo.size);
+				arr.push(blo);
+;				
+			}
+			function schreibeUInt(arr, nummer){
+				var zahl = new Uint32Array(1);
+				zahl[0] = nummer;
+				arr.push(zahl);
+			}
+			
+			function buffer_aus_Datei(f){
+				return new Promise((resolve, reject) => {
+						var reader = new FileReader();
+						reader.onload = () => { resolve(reader.result ); };
+						reader.readAsArrayBuffer(f);
+					});
+			}
+			
+			function leseAlleSegmente(arrbuff, i){
+					console.log(arrbuff.byteLength);
+				while(i.pos != null && i.pos < arrbuff.byteLength){
+					findeDoppelpunkt(arrbuff, i);
+					var name = i.wert;
+					console.log("tuf" + name);
+					console.log(name);
+					leseBlock(arrbuff, i);
+					segmentLaden(name, i.wert);
+					console.log(i.pos);
+					
+				}
+			}
+			
+			function leseBlock(arr, i){
+				leseUInt(arr, i);
+				var laenge = i.wert;
+				i.wert = arr.slice(i.pos, i.pos + laenge);
+				i.pos += laenge;
+				
+			}
+			
+			function lesevorgang(pos){
+				this.pos = pos;
+				this.wert = null;
+			}
+			
+			function leseUInt(arrbuff, i){
+				if(arrbuff.byteLength - i.pos < 4)
+					return null;
+				i.wert = new Uint32Array(arrbuff.slice(i.pos, i.pos + 4))[0];
+				console.log(arrbuff.slice(i.pos, i.pos + 4));
+				i.pos += 4;
+			}
+			
+			function speichern(){
+				var vek = getvek();
+				var pot = getpot();
+				
+				var a = document.getElementById("a");
+				var arr = [];
+				schreibeSegment(arr, "f32_compl_1d_arr", [vek.buffer.slice(vek.byteOffset, vek.byteOffset + vek.byteLength)]);
+				schreibeSegment(arr, "f32_1d_arr", [pot.buffer.slice(pot.byteOffset, pot.byteOffset + pot.byteLength)]);
+				schreibeSegment(arr, "zeit_f32", [SchribeFloat(zeit)]);
+				schreibeSegment(arr, "gitter_punkt_abstand_f32", [SchribeFloat(gitterPunktAbstand)]);
+				schreibeSegment(arr, "zeit_schritt_f32", [SchribeFloat(zeitschritt)]);
+				schreibeSegment(arr, "masse_f32", [SchribeFloat(masse)]);
+				a.href = URL.createObjectURL(new Blob(arr));
+				a.download = 'wave.schroed';
+				a.click();
+			}
+			function segmentLaden(name, buff){
+				if(name == "f32_compl_1d_arr"){
+					var vek = getvek();
+					new Uint8Array(vek.buffer, vek.byteOffset, vek.byteLength).set(new Uint8Array(buff), 0);
+				}else if(name == "f32_1d_arr"){
+					var pot = getpot();
+					new Uint8Array(pot.buffer, pot.byteOffset, pot.byteLength).set(new Uint8Array(buff), 0);
+				}else if(name == "zeit_f32"){
+					zeit = LeseFloat(buff);
+				}else if(name == "gitter_punkt_abstand_f32"){
+					gitterPunktAbstand = LeseFloat(buff);
+				}else if(name == "zeit_schritt_f32"){
+					zeitschritt = LeseFloat(buff);
+				}else if(name == "masse_f32"){
+					masse = LeseFloat(buff);
+				}
+				parameter_anzeigen();
+				parameter_aendern()
+				console.log("das Segment heißt: " + name);
+			}
+			
+		</script>
+	</body>
+</html>

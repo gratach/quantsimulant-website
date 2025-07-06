@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title></title>
+	<meta charset="utf-8"/>
+    <meta content="">
+    <style></style>
+	</head>
+	<body>
+		<canvas id = "canv" height = 1500 width = 1900></canvas>
+		<script src="main.js"></script>
+		<script>
+			var daten;
+				
+			var canvas = document.getElementById("canv");
+			var ctx = canvas.getContext("2d");
+			var laenge = canvas.width*canvas.height*4;
+			
+			function zeichnen(){
+				var img = new ImageData(daten, canvas.width, canvas.height);
+            			ctx.putImageData(img, 0,0);
+			}
+				
+			function bereit(){		
+				
+				var ptr = Module._malloc(laenge);
+				Module.ccall('vorbereiten', null, ['number','number','number'], [ptr, canvas.width, canvas.height]);
+
+				daten = Module.HEAPU8.subarray(ptr, ptr + laenge);
+				daten = new Uint8ClampedArray(daten.buffer, daten.byteOffset, daten.length)
+				for(let i = 0;i<laenge; i++)
+					daten[i] = 255;
+
+				window.requestAnimationFrame(dauerzeichnen);
+			}
+			
+			function dauerzeichnen(){
+				console.log("lebe");
+				int0oder1 = Module.ccall('iteration', 'int', ['null'], null);
+				zeichnen();
+				window.requestAnimationFrame(dauerzeichnen);
+			}
+			
+		</script>
+	</body>
+</html>

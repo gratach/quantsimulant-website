@@ -1,0 +1,1614 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title></title>
+	<meta charset="utf-8"/>
+    <meta content="">
+    <style>
+	.farb{
+		background:#b0d0fa;
+		position: fixed;
+		top: 50%;
+		left: 50%;
+		transform: translate(-50%, -50%);
+		border: 10px solid #420fae;
+		text-align: center;
+	}
+	body, html {
+	    width: 100%;
+	    height: 100%;
+	    margin: 0;
+	    padding: 0;
+	    overflow: hidden;
+	}
+	canvas{
+		position: absolute;
+	}
+    </style>
+	</head>
+	<body>
+		<canvas id = "canv" height = 1000 width = 2000></canvas>
+		<div class="farb" style="display:none;" id = "messblock">
+			Zeitpunkte Aenderung:<input type="number" onchange = "parameter_auslesen()" step = "any" id = "gp_zp_ae" placeholder="0"></input>
+			Zeitpunkte Gesamtmessungen:<input type="number" onchange = "parameter_auslesen()" step = "any" id = "gp_zp_ges" placeholder="0"></input><p>
+			Raumpunkte Aenderung:<input type="number" onchange = "parameter_auslesen()" step = "any" id = "gp_rp_ae" placeholder="0"></input>
+			Raumpunkte Gesamtmessungen:<input type="number" onchange = "parameter_auslesen()" step = "any" id = "gp_rp_ges" placeholder="0"></input><p>
+			Masse Aenderung:<input type="number" onchange = "parameter_auslesen()" step = "any" id = "gp_m_ae" placeholder="0"></input>
+			Masse Gesamtmessungen:<input type="number" onchange = "parameter_auslesen()" step = "any" id = "gp_m_ges" placeholder="0"></input><p>
+			Ordnung Aenderung:<input type="number" onchange = "parameter_auslesen()" step = "any" id = "gp_o_ae" placeholder="0"></input>
+			Ordnung Gesamtmessungen:<input type="number" onchange = "parameter_auslesen()" step = "any" id = "gp_o_ges" placeholder="0"></input><p>
+			Zeitpropagation Wiederholungen:<input type="number" onchange = "parameter_auslesen()" step = "any" id = "wiederhol" placeholder="0"></input>
+			Zeitschritte:<input type="number" onchange = "parameter_auslesen()" step = "any" id = "zeitschr" placeholder="0,3"></input>
+			Ordnung:<input type="number" onchange = "parameter_auslesen()" step = "any" id = "ordnung" placeholder="0"></input>
+			Zeitintervall:<input type="number" onchange = "parameter_auslesen()" step = "any" id = "zeitraum" placeholder="0"></input>
+			Abweichung: <font id = "quaddiff"></font><p>
+			<button onclick = "zufallsvektor()" left = "50px" top = "30px" id = "zufallsv">Zufallsvektor</button>
+			<button onclick = "pseudozufallsvektor()" left = "50px" top = "30px" id = "pseudozufallsv">Pseudo-Zufallsvektor</button>
+			<textarea id="outp" cols="40" rows="5"></textarea>
+		</div>
+		<div class="farb" id = "parameterblock">
+			<a href = "./info.html" target="_blank">Anleitung</a>
+			<div>
+				<button onclick = "neustart()" left = "50px" top = "30px" id = "neustart">Zur&uumlcksetzen</button>
+				<button onclick = "start_stop()" left = "50px" top = "30px" id = "startstop">Start</button>
+				<button onclick = "normiere()" left = "50px" top = "30px" id = "startstop">Normieren</button>
+				<button onclick = "glaetten_funktion()" left = "50px" top = "30px" id = "startstop">Gl&aumltten</button>
+				<a href="" id="speicherlink" style = "display:none"> </a>
+				<div>
+					<button onclick = "speichern()" left = "50px" top = "30px" id = "spe">Speichern</button>
+					<select id="speicherverhalten">
+						<option value=1>Alles Speichern</option>
+						<option value=2>Potential Speichern</option>
+						<option value=0>Wellenfunktion Speichern</option>
+					</select>
+					<button onclick = "dateiwahl.click()" left = "50px" top = "30px" id = "lad">Laden</button>
+				</div>
+				<input type='file' onchange='laden(event)' id = "datw" style = "display:none">
+			<select name="stifte" id="stiftselect" onchange="stiftAendern()">
+			    <option value="potstift">Potential zeichnen</option>
+			    <option value="vekstift">Wellenfunktion zeichnen</option>
+			    <option value="potstift_g">Potential Linie zeichnen</option>
+			  </select>
+			<div>
+				Aktuelle Zeit: <input type="number" onchange = "parameter_auslesen()" value = 0 step = "any" id = "zeit" placeholder="0"></input>
+				Delta_t: <input type="number" value = 1 onchange = "parameter_auslesen()" step = "any" id = "delta_t" placeholder="0"></input>
+				Zeitschritte pro Frame: <input type="number" onchange = "parameter_auslesen()" step = "any" id = "schritteproframe" placeholder="0"></input>
+				
+				Masse: <input type="number" onchange = "vektoraktualisieren()" step = "any" id = "mas" placeholder="1"></input>
+				Kastenbreite: <input type="number" onchange = "vektoraktualisieren()" step = "any" id = "breite" placeholder="0"></input>
+				Ortsgitterpunkte: <input type="number" onchange = "vektoraktualisieren()" step = "any" id = "gitterpunkte" placeholder="1"></input>
+			</div>zeichnen()
+			</div>
+				Wellenfunktion Vergr&oumlßerung: <input type="number" onchange = "ansichtsAenderung()" step = "any" id = "vekgroesse" value=10></input>
+				Betragsquadrat Wellenfunktion Vergr&oumlßerung: <input type="number" onchange = "ansichtsAenderung()" step = "any" id = "quadvekgroesse" value=200></input>
+				Potential Vergr&oumlßerung: <input type="number" onchange = "ansichtsAenderung()" step = "any" id = "potgroesse" value=10></input>
+				<div>Realanteil: <input type="checkbox" id = "Rcheck" checked = False onchange = "zeichnen()"></input><input type="color" value="#ff0000" id = "Rfarbe" onchange = "zeichnen()"></div>
+				<div>Imagin&aumlrteil: <input type="checkbox" id = "Icheck" checked = False onchange = "zeichnen()"></input><input type="color" value="#00ff00" id = "Ifarbe" onchange = "zeichnen()"></div>
+				<div>3D-Projektion: <input type="checkbox" id = "D3check" checked = True onchange = "zeichnen()"></input><input type="color" value="#1234fa" id = "D3farbe" onchange = "zeichnen()"></div>
+				<div>Potential: <input type="checkbox" id = "Pcheck" checked = False onchange = "zeichnen()"></input><input type="color" value="#000000" id = "Pfarbe" onchange = "zeichnen()"></div>
+				<div>Betragsquadrat: <input type="checkbox" id = "Qcheck" checked = False onchange = "zeichnen()"></input><input type="color" value="#de5f11" id = "Qfarbe" onchange = "zeichnen()"></div>
+				<div>Strichst&aumlrke: <input type="number" onchange = "zeichnen()" step = "any" id = "strichstaerke" value = 1></input></div>
+			<div>
+			
+			
+			<font id = "betrquad"></font> Mittlerer Betrag: <font id = "betrdurch"></font>
+			<div>
+				<button onclick = "formelanwenden()" left = "50px" top = "30px" id = "formelanwenden">Formel Anwenden</button>
+				<select name="stifte" id="formelwahl" onchange="formelAendern()">
+					<option value="kastenmoden">Moden des unendlich hohen Kastenpotentials</option>
+					<option value="gauss">Gaußsche Glockenkurve</option>
+					<option value="kasten">Endlicher Kasten</option>
+					<option value="harmonisch">Harmonischer Oszillator</option>
+					<option value="test">test</option>
+					<option value="defokus">Potentielle Energie</option>
+				</select>
+				<textarea id="formel" cols="40" rows="5"></textarea>
+			</div>
+		</div>
+		
+		<script src="main.js"></script>
+		<script>
+			//"use strict";
+			//Modus
+				var messmodus = false;
+			//Mosus Ende
+		
+			//konzepte für lese/schreibe segmente
+			var Konzepte = [];
+			
+			var werkzeuge = [];
+			var komponenten = [];
+			
+			var vekgroesse = document.getElementById("vekgroesse");
+			var quadvekgroesse = document.getElementById("quadvekgroesse");
+			var potgroesse = document.getElementById("potgroesse");
+			
+			var Rcheck = document.getElementById("Rcheck");
+			var Icheck = document.getElementById("Icheck");
+			var Qcheck = document.getElementById("Qcheck");
+			var D3check = document.getElementById("D3check");
+			var Pcheck = document.getElementById("Pcheck");
+			Rcheck.checked = false;
+			Icheck.checked = false;
+			Qcheck.checked = false;
+			D3check.checked = true;
+			Pcheck.checked = true;
+			
+			var Rfarbe = document.getElementById("Rfarbe");
+			var Ifarbe = document.getElementById("Ifarbe");
+			var Qfarbe = document.getElementById("Qfarbe");
+			var D3farbe = document.getElementById("D3farbe");
+			var Pfarbe = document.getElementById("Pfarbe");
+			
+			var strichstaerke = document.getElementById("strichstaerke");
+			
+			var parameterblock = document.getElementById("parameterblock");
+			var parameterblockda = true;
+				
+			var canvas = document.getElementById("canv");
+			var ctx = canvas.getContext("2d");
+			
+			var startstop_button = document.getElementById("startstop");
+			var dateiwahl = document.getElementById("datw");
+			var formelfeld = document.getElementById("formel");
+			
+			var speicherlink = document.getElementById("speicherlink");
+			
+			//var zeit_anzeige = document.getElementById("zeit");
+			var uhr = document.getElementById("zeit");
+			//var zeit = 0;
+			
+			var zeitraum_anzeige = document.getElementById("zeitraum");
+			var zeitraum = 1000;//200;//
+			
+			var deltat = document.getElementById("delta_t");
+			
+			var ordnung_anzeige = document.getElementById("ordnung");
+			var ordnung = 1;
+			
+			var zeitschritte_anzeige = document.getElementById("zeitschr");
+			var zeitschritte = 10000;//141;
+			
+			var gitterpunkte_anzeige = document.getElementById("gitterpunkte");
+			var gitterpunkte = 1000;
+			
+			var masse_anzeige = document.getElementById("mas");
+			var masse = 1;
+			
+			var breite_anzeige = document.getElementById("breite");
+			var breite = 1000;
+			
+			var outpanzeige = document.getElementById("outp");
+			var outp = "";
+			
+			var quaddiff_anzeige = document.getElementById("quaddiff");
+			var mdiff;
+			
+			var betrquad_anzeige = document.getElementById("betrquad");
+			var betrquad;
+			
+			var betrdurch_anzeige = document.getElementById("betrdurch");
+			var betrdurch;
+			
+			var start_zp;
+			
+			var stiftselect = document.getElementById("stiftselect");
+			var vekstiftordnung = 100;
+			
+			var formelwahl = document.getElementById("formelwahl");
+			
+			var schritteproframe = document.getElementById("schritteproframe");
+			schritteproframe.value = 20;
+			
+			var gp_zp_ae_anzeige = document.getElementById("gp_zp_ae");
+			var gp_zp_ae = 50;
+			
+			var gp_zp_ges_anzeige = document.getElementById("gp_zp_ges");
+			var gp_zp_ges = 1;
+			
+			var gp_zp_zaehler;
+			
+			var start_gp;
+			
+			var gp_rp_ae_anzeige = document.getElementById("gp_rp_ae");
+			var gp_rp_ae = 50;
+			
+			var gp_rp_ges_anzeige = document.getElementById("gp_rp_ges");
+			var gp_rp_ges = 1;
+			
+			var gp_rp_zaehler;
+			
+			var start_m;
+			
+			var gp_m_ae_anzeige = document.getElementById("gp_m_ae");
+			var gp_m_ae = 1;
+			
+			var gp_m_ges_anzeige = document.getElementById("gp_m_ges");
+			var gp_m_ges = 1;
+			
+			var gp_m_zaehler;
+			
+			var start_o;
+			
+			var gp_o_ae_anzeige = document.getElementById("gp_o_ae");
+			var gp_o_ae = 1;
+			
+			var gp_o_ges_anzeige = document.getElementById("gp_o_ges");
+			var gp_o_ges = 1;
+			
+			var gp_o_zaehler;
+			
+			var gp_wh_anzeige = document.getElementById("wiederhol");
+			var gp_wh = 1;
+			
+			var gp_wh_zaehler;
+			
+			var start_z;
+			
+			var malen = false;
+			
+			var xalt = null;
+			var yaly = null;
+			
+			var xinnenanf = 0;
+			var xinnenend = breite;
+			var yinnenanf = 0.07;
+			var yinnenend = -0.07;
+			var yinnenanfQ = 0.003;
+			var yinnenendQ = -0.003;
+			
+			var wellnorm = 0.01;
+			var wellenberge = 1;
+			
+			var pinsel;
+			var messort;
+			
+			var gitterPunktAbstand = 1;
+			//var zeitschritt = zeitraum / zeitschritte;
+			
+			var wandelpot_aufl = 0.000001;
+			
+			var bildschirmbreite = 1900;
+			var bildschirmhoehe = 1000;
+			
+			var yskal = 0.07;
+			
+			var aktiv = false;
+			var berechnen;
+			var zerleg;
+			var cbuff;
+			var wandelpot;
+			
+			var nl = "\r\n";
+			
+			var framezahl = 0;
+			
+			var datn;
+
+			var bytenr = Number("f64".substring(1));
+			var l_f64 = bytenr / 8;
+			var l_f64_potenz = Math.round(Math.log(l_f64) / Math.log(2));
+
+			var anfwert = 0;
+
+			var xalt;
+			var yalt;
+			var koord;
+			var koordPot;
+			var koordQ;
+			
+			var stift;
+			
+			
+			
+			function parameter_auslesen(){
+				var aufl = document.getElementById("aufl");
+				//zeit = Number(zeit_anzeige.value);
+				zeitraum = Number(zeitraum_anzeige.value);
+				ordnung = Number(ordnung_anzeige.value);
+				zeitschritte = Number(zeitschritte_anzeige.value);
+				gitterpunkte = Number(gitterpunkte_anzeige.value);
+				masse = Number(masse_anzeige.value);
+				breite = Number(breite_anzeige.value);
+				
+				gp_zp_ae = Number(gp_zp_ae_anzeige.value);
+				gp_zp_ges = Number(gp_zp_ges_anzeige.value);
+				
+				gp_rp_ae = Number(gp_rp_ae_anzeige.value);
+				gp_rp_ges = Number(gp_rp_ges_anzeige.value);
+				
+				gp_m_ae = Number(gp_m_ae_anzeige.value);
+				gp_m_ges = Number(gp_m_ges_anzeige.value);
+				
+				gp_o_ae = Number(gp_o_ae_anzeige.value);
+				gp_o_ges = Number(gp_o_ges_anzeige.value);
+				
+				gp_wh = Number(gp_wh_anzeige.value);
+				
+				//parameter_umsetzen();
+				//parameter_anzeigen();
+			}
+			function parameter_umsetzen(){
+				
+			}
+			function parameter_anzeigen(){
+				var aufl = document.getElementById("aufl");
+				//zeit_anzeige.value = zeit;
+				zeitraum_anzeige.value = zeitraum;
+				ordnung_anzeige.value = ordnung;
+				zeitschritte_anzeige.value = zeitschritte;
+				gitterpunkte_anzeige.value = gitterpunkte;
+				masse_anzeige.value = masse;
+				breite_anzeige.value = breite;
+				
+				gp_zp_ae_anzeige.value = gp_zp_ae;
+				gp_zp_ges_anzeige.value = gp_zp_ges;
+				
+				gp_rp_ae_anzeige.value = gp_rp_ae;
+				gp_rp_ges_anzeige.value = gp_rp_ges;
+				
+				gp_m_ae_anzeige.value = gp_m_ae;
+				gp_m_ges_anzeige.value = gp_m_ges;
+				
+				gp_o_ae_anzeige.value = gp_o_ae;
+				gp_o_ges_anzeige.value = gp_o_ges;
+				
+				gp_wh_anzeige.value = gp_wh;
+			}
+			var formelsammlung = {
+				test:"r = 0.0000001 * x * (l - x) * Math.sin(x * 0.4);\ni = 0.0000001 * x * (l - x) * Math.cos(x * 0.4);",
+				kastenmoden:"var n = 1;\n\nr = Math.sin(x*n*Math.PI/l)*Math.sqrt(2/l);\ni = 0;",
+				gauss:"",
+				kasten:"var breite = 100;\nvar tiefe = 0.05;\n\nv = 0;\nif(Math.abs(x - l/2) < breite){\n    v = -tiefe;\n}",
+				harmonisch:"var a = 0.000001;\n\nv = a*Math.pow(x-l/2, 2);",
+				defokus:"var a = 10;\n\nv = a * (r * r + i * i);"
+			}
+			function formelAendern(){
+				formelfeld.value = formelsammlung[formelwahl.value];
+			}
+			function neustart(){
+				parameter_auslesen();
+				framezahl = 0;
+				//zeit_anzeige.value = 0; 
+				if(!aktiv && messmodus){
+					window.requestAnimationFrame(hauptschleife);
+					aktiv = true;
+				}
+				//zeitschritt = zeitraum / zeitschritte;
+				
+				//zerleg.setze_masse(masse);
+				if(wandelpot)
+					wandelpot.fertig();
+				wandelpot = new f64_WANDEL_POT(uhr.valueAsNumber, gitterpunkte_anzeige.value, anfwert, anfwert + breite_anzeige.value, wandelpot_aufl, 0);
+
+				if(berechnen)
+					berechnen.fertig();
+				berechnen = new f64_SCHROED_BERECHNEN(gitterpunkte_anzeige.value, anfwert, anfwert + breite_anzeige.value, masse_anzeige.value, wandelpot);
+				pseudozufallsvektor();
+				
+				
+				if(messmodus){
+					if(cbuff)
+						cbuff.fertig();
+					cbuff = new cf64_VEK(gitterpunkte, 0, breite, 0, null);
+				}
+				
+				
+				berechnen.vek.fuelle(zerleg.ptr, uhr.valueAsNumber);
+
+				zeichnen();
+			}
+			function parameterUmschalten(){
+				if(parameterblockda)
+					parameterblock.style.display = "none";
+				else
+					parameterblock.style.display = "block";
+				parameterblockda = !parameterblockda;
+			}
+			document.onmousemove = bewegeMaus;
+			document.onkeyup = function(e){
+				if(document.activeElement==formelfeld)
+					return;
+				if(e.key == " "){
+					start_stop();
+					e.preventDefault();
+				}
+			
+				if(e.key == "i"){
+					uhr.valueAsNumber = wandelpot.naechster_frame(uhr.valueAsNumber);
+					zeichnen();
+					e.preventDefault();
+				}
+				if(e.key == "k"){
+					uhr.valueAsNumber = wandelpot.letzter_frame(uhr.valueAsNumber);
+					zeichnen();
+					e.preventDefault();
+				}
+				if(e.key == "Enter"){
+					parameterUmschalten();
+					e.preventDefault();
+				}
+			}
+			document.onkeydown = function(e){
+				if(document.activeElement==formelfeld)
+					return;
+				if(e.key == " "){
+					e.preventDefault();
+				}
+				if(e.key === "l"){
+					zeitwandel(deltat.valueAsNumber,schritteproframe.value);
+					zeichnen();
+					e.preventDefault();
+				}
+				if(e.key === "j"){
+					zeitwandel(-deltat.valueAsNumber,schritteproframe.value);
+					zeichnen();
+					e.preventDefault();
+				}
+				if(e.key === "a"){
+					if(koord.kipp > -0.5)
+						koord.kipp -= 0.01;
+					zeichnen();
+					e.preventDefault();
+				}
+				if(e.key === "d"){
+					if(koord.kipp < 0.5)
+						koord.kipp += 0.01;
+					zeichnen();
+					e.preventDefault();
+				}
+				if(e.key === "w"){
+					berechnen.vek.rotiere(0.05);
+					zeichnen();
+					e.preventDefault();
+				}
+				if(e.key === "s"){
+					berechnen.vek.rotiere(-0.05);
+					zeichnen();
+					e.preventDefault();
+				}
+				if(e.key === "x"){
+					if(wandelpot.aktueller_frame(uhr.valueAsNumber) == uhr.valueAsNumber)
+						wandelpot.loescheframe(uhr.valueAsNumber);
+					zeichnen();
+					e.preventDefault();
+				}
+				if(e.key === "q"){
+					glaetten(14);
+					zeichnen();
+					e.preventDefault();
+				}
+				if(e.key === "n"){
+					berechnen.vek.normiere();
+					zeichnen();
+					e.preventDefault();
+				}
+				if(e.key == "Enter"){
+					e.preventDefault();
+				}
+			}
+			canvas.onmousedown = function(e) {
+				xalt = getcanvasx(e);
+				yalt = getcanvasy(e);
+				malen = true;
+				stift.start(xalt, yalt);
+			};
+			canvas.onmouseup = function(e) {
+				if(malen){
+					var x = getcanvasx(e);
+					var y = getcanvasy(e);
+					malen=false;
+					stift.malen(x, y, xalt, yalt);
+					stift.stop(x, y, xalt, yalt);
+				}
+			};
+			function vektoraktualisieren(){
+				var neuber = berechnen.klone(gitterpunkte_anzeige.value, 0, breite_anzeige.value, masse_anzeige.value);
+				berechnen.fertig();
+				berechnen = neuber;
+				ansichtEinrichten();
+				zeichnen();
+			}
+			function getcanvasx(e){
+				return e.clientX-canvas.getBoundingClientRect().left;
+			}
+			function getcanvasy(e){
+				return e.clientY-canvas.getBoundingClientRect().top;
+			}
+			canvas.onmouseenter = function(e) {
+				xalt = getcanvasx(e);
+				yalt = getcanvasy(e);
+				
+			};
+			canvas.onmouseleave = function(e) {
+				if(malen){
+					malen=false;
+					stift.stop(getcanvasx(e), getcanvasy(e), xalt, yalt);
+				}
+			};
+
+			function bewegeMaus(e){
+				var x = getcanvasx(e);
+				var y = getcanvasy(e);
+				if(malen){
+					stift.malen(x, y, xalt, yalt);
+				}
+				
+				xalt = x;
+				yalt = y;
+			}
+			
+			function start_stop(){
+				if(!aktiv)
+					window.requestAnimationFrame(hauptschleife);
+				aktiv = !aktiv;
+				startstop_button.textContent = aktiv ? "Pause" : "Start";
+			}
+			function formelanwenden(){
+				vekZuweisen(formelfeld.value);
+				potZuweisen(formelfeld.value);
+				zeichnen();
+			}
+			function vekZuweisen(str){
+				var getC = Function("return function(x, t, l, alt_r, alt_i, alt_v){var v = alt_v; var r = alt_r; var i = alt_i; "+str+"; return {im: i, re: r};};")();
+				var arr = berechnen.vek.getarr();
+				var x = berechnen.xanf;
+				var st = berechnen.deltax;
+				var len2 = berechnen.len*2;
+				var breite = berechnen.breite;
+				for(let i = 0; i < len2; i+= 2){
+					var r = getC(x, uhr.valueAsNumber, breite, arr[i], arr[i+1], wandelpot.auswerten(x, uhr.valueAsNumber));
+					arr[i] = r.re;
+					arr[i+1] = r.im;
+					x += st;
+				}
+			}
+			function potZuweisen(str){
+				var getV = Function("return function(x, t, l, alt_r, alt_i, alt_v){ var r = alt_r; var i = alt_i; var v = alt_v; "+str+"; return v;};")();
+				wandelpot.strich(0,0,0,0,uhr.valueAsNumber);
+				var inf = wandelpot.getframeinfo(uhr.valueAsNumber);
+				var arr = inf.arr;
+				var x = inf.xanf;
+				var st = inf.deltax;
+				var len = inf.len;
+				var breite = berechnen.breite;
+				for(let i = 0; i < len; i++){
+					arr[i] = getV(x, uhr.valueAsNumber, breite, berechnen.vek.R_auswerten(x), berechnen.vek.I_auswerten(x), arr[i]);
+					x += st;
+				}
+			}
+			
+			function glaetten_funktion(){
+				glaetten(100);
+				zeichnen();
+			}
+			
+			function normieren_funktion(){
+				normiere();
+				zeichnen();
+			}
+			
+			function ansichtEinrichten(){
+				canvas.width = window.innerWidth;
+				canvas.height = window.innerHeight;
+				var grenze = 1 / vekgroesse.value;
+				var xanf = berechnen?berechnen.xanf:xinnenanf;
+				var xend = berechnen?berechnen.xend:xinnenend;
+				koord = new f64_KOORD(canvas.width, canvas.height, xanf, xend, grenze, -grenze,  koord?koord.kipp:0);
+				grenze = 1 / potgroesse.value;
+				koordPot = new f64_KOORD(canvas.width, canvas.height, xanf, xend, grenze, -grenze, 0);
+				grenze = 1 / quadvekgroesse.value;
+				koordQ = new f64_KOORD(canvas.width, canvas.height, xanf, xend, grenze, -grenze, 0);
+			}
+			function ansichtsAenderung(){
+				ansichtEinrichten();
+				zeichnen();
+			}
+			
+			
+			function zeichnen(){
+				ctx.clearRect(0,0,canvas.width, canvas.height);
+				//koord.zeichnen(ctx, berechnen.vek.wertbeiR, uhr.valueAsNumber, "rgb(0,255,0)");
+				//koord.zeichnen(ctx, berechnen.vek.wertbeiI, uhr.valueAsNumber, "rgb(255,0,0)");
+				if(D3check.checked)
+					koord.komplexZeichnen(ctx, berechnen.vek.wertbeiR, berechnen.vek.wertbeiI, uhr.valueAsNumber, D3farbe.value, strichstaerke.value);
+				
+				if(messmodus){
+					koord.zeichnen(ctx, cbuff.wertbeiR, uhr.valueAsNumber, Rfarbe.value, strichstaerke.value);
+					koord.zeichnen(ctx, cbuff.wertbeiI, uhr.valueAsNumber, Ifarbe.value, strichstaerke.value);
+				
+				}
+				if(Rcheck.checked)
+					koord.zeichnen(ctx, berechnen.vek.wertbeiR, uhr.valueAsNumber, Rfarbe.value, strichstaerke.value);
+				if(Icheck.checked)
+					koord.zeichnen(ctx, berechnen.vek.wertbeiI, uhr.valueAsNumber, Ifarbe.value, strichstaerke.value);
+				if(Pcheck.checked)
+					koordPot.zeichnen(ctx, wandelpot.wertbeiptr, uhr.valueAsNumber, Pfarbe.value, strichstaerke.value);
+				if(Qcheck.checked)
+					koordQ.zeichnen(ctx, berechnen.vek.wertbeiQ, uhr.valueAsNumber, Qfarbe.value, strichstaerke.value);
+			}
+			
+			function SchwingungsZerlegung(){
+				Module.ccall('SchwingungsZerlegung', 'null', ['number','number','number','number','number'], [getvek_buff(), laenge, schwingungsAnteile_buff, Dreh(), ordnung]);
+			}
+			
+			function Dreh(){
+				return uhr.valueAsNumber*Math.PI*Math.PI/(2*masse*laenge*laenge);
+			}
+			
+			function setzeSin(vek, len, n, norm){
+				var mul = n*Math.PI/(len-1);
+				for(let i = 0;i<len;i+=1){
+					vek[i*2] = Math.sin(i*mul) * norm;
+					vek[i*2+1] = 0;
+				}
+			}
+			function PotNull(){
+				var pot = getpot();
+				for( let i = 0; i < laenge; i++)
+					pot[i] = 0;
+			}
+			
+			class ZEIT_KONZEPT{schreibe(schr){schr.schreibeF64(uhr.valueAsNumber);}}
+			Konzepte.push(ZEIT_KONZEPT);
+			ZEIT_KONZEPT.segmentLesen = (les)=>{
+				uhr.valueAsNumber = les.leseF64();
+			}
+			ZEIT_KONZEPT.titel = "F64ZEIT";
+			
+			
+			class f64_SCHROED_BERECHNEN{
+				constructor(len, xanf, xend, mass, pot){
+					this.len = len;
+					this.xanf = xanf;
+					this.xend = xend;
+					this.breite = xend - xanf;
+					this.deltax = this.breite/(len - 1);
+					this.mass = mass;
+					this.dvek = new cf64_DOPPEL_VEK(len,  xanf, xend, null);
+					this.pot = pot; // <- Flexibel Pot
+					//this.pot = new f64_DOPPEL_VEK(len,  xanf, xend, uhr.valueAsNumber, null); //<- Standard Pot
+					this.rkm = new f64_RUNGEKUTTA_MATRIX(4, [0,0.5, 0.5,0,0.5,0.5,0,0,1,1,1.0/6,1.0/3,1.0/3,1.0/6]);
+					this.eul = new f64_SCHROED_WANDEL(this.pot.wertbeiptr, len, xanf, xend, mass);
+					this.add = new f64_VEK_ADD(len * 2);
+					this.run = new f64_RUNGEKUTTA(len * l_f64 * 2, this.rkm, this.eul, this.add);
+					this.fertig = ()=>{
+						this.dvek.fertig();
+						//this.pot.fertig(); //<- Standard Pot
+						this.rkm.fertig();
+						this.eul.fertig();
+						this.add.fertig();
+						this.run.fertig();
+					};
+					this.iteration = (zeit, zeitschritt)=>{
+						this.dvek.tausche();
+						this.run.iteration(this.dvek.alt.ptr, this.dvek.neu.ptr, zeit, zeitschritt);
+					};
+				}
+				klone(len, xanf, xend, mass){
+					var temp = new cf64_VEK(this.len, xanf, xend, null);
+					var r = new f64_SCHROED_BERECHNEN(len, xanf, xend, mass, this.pot);
+					temp.getarr().set(this.vek.getarr());
+					r.vek.fuelle(temp.wertbei);
+					temp.fertig();
+					return r;
+				}
+				schreibe(schr){
+						schr.schreibeUInt(this.len);
+						schr.schreibeF64(this.xanf);
+						schr.schreibeF64(this.xend);
+						schr.schreibeF64(this.mass);
+						schr.schreibeF64Daten(getByteArrVonPtr(this.vek.ptr, this.len * 2 * l_f64));
+				}
+				setze_pot(pot){
+					this.pot = pot;
+					this.eul.setze_pot_ptr(pot.wertbeiptr);
+				}
+				
+				get vek(){return this.dvek.neu;}
+				get vek_ptr(){return this.dvek.neu.ptr;}
+				get vek_arr(){return this.dvek.neu.getarr();}
+			}
+			Konzepte.push(f64_SCHROED_BERECHNEN);
+			f64_SCHROED_BERECHNEN.titel = "F64_SCHROED";
+			f64_SCHROED_BERECHNEN.lese = (les)=>{
+				var len = les.leseUInt();
+				var anf = les.leseF64();
+				var end = les.leseF64();
+				var masse = les.leseF64();
+				var ber = new f64_SCHROED_BERECHNEN(len, anf, end, masse, wandelpot);
+				ber.vek.getarr().set(les.leseF64Daten(len * 2));
+				return ber;
+			}
+			f64_SCHROED_BERECHNEN.segmentLesen = (les)=>{
+				var neu = f64_SCHROED_BERECHNEN.lese(les);
+				if(berechnen)
+					berechnen.fertig();
+				berechnen = neu;
+				gitterpunkte_anzeige.value = berechnen.len;
+				breite_anzeige.value = berechnen.breite;
+				masse_anzeige.value = berechnen.mass;
+			}
+			
+			class f64_VEK{
+				constructor(len, xanf, xend, beschr){
+					this.len = len;
+					this.xanf = xanf;
+					this.xend = xend;
+					this.breite = xend - xanf;
+					this.ptr = Module._malloc(len*l_f64);
+					Dsetzekonst(this.ptr, len, 0);
+					this.wertbeiptr = f64_VEK.neuwertbei(this.ptr, len, xanf, xend);
+					this.get = (nr) => {return getf64(this.ptr + nr*l_f64);};
+					this.set = (nr, wert) => {return setf64(this.ptr + nr*l_f64, wert);};
+					this.getarr = () => {return getf64ArrVonPtr(this.ptr, len)};
+					this.fertig = ()=>{
+						Module._free(this.ptr);
+					};
+					komponenten.push(this);
+				}
+				auswerten(x){
+					return f64_wertbei(this.wertbeiptr, x, 0);
+				}
+				get bytelen(){return this.len*l_f64;}
+			}
+			f64_VEK.neuwertbei =  Module.cwrap('mache_f_rf64_VEK', 'number', ['number','number','number','number']);
+			f64_VEK.entfwertbei =  Module.cwrap('free_f_rf64_VEK', null, ['number']);
+			
+			class cf64_VEK{
+				constructor(len, xanf, xend, beschr){
+					this.len = len;
+					this.xanf = xanf;
+					this.xend = xend;
+					this.breite = xend - xanf;
+					this.ptr = Module._malloc(len*2*l_f64);
+					Dsetzekonst(this.ptr, len*2, 0);
+					this.wertbei = cf64_VEK.neuwertbei(this.ptr, len, xanf, xend);
+					this.wertbeiR = cf64_VEK.neuwertbeiR(this.wertbei);
+					this.wertbeiI = cf64_VEK.neuwertbeiI(this.wertbei);
+					this.wertbeiQ = cf64_VEK.neuwertbeiQ(this.wertbei);
+					this.getre = (nr) => {return getf64(this.ptr + nr*2*l_f64);};
+					this.setre = (nr, wert) => {return setf64(this.ptr + nr*2*l_f64, wert);};
+					this.getim = (nr) => {return getf64(this.ptr + nr*2*l_f64 + l_f64);};
+					this.setim = (nr, wert) => {return setf64(this.ptr + nr*1*l_f64 + l_f64, wert);};
+					this.getarr = () => {return getf64ArrVonPtr(this.ptr, len * 2)};
+					this.fuelle = (ptr, zeit) => {
+						cf64_VEK.fuelle(this.ptr, this.len, ptr, this.xanf, (this.xend-this.xanf)/(this.len - 1), zeit);
+					};
+					this.fertig = ()=>{
+						Module._free(this.ptr);
+						cf64_VEK.entfwertbei(this.wertbeiptr);
+						cf64_VEK.entfwertbeiX(this.wertbeiR);
+						cf64_VEK.entfwertbeiX(this.wertbeiI);
+						cf64_VEK.entfwertbeiX(this.wertbeiQ);
+					};
+					komponenten.push(this);
+				}
+				R_auswerten(x){
+					return f64_wertbei(this.wertbeiR, x, 0);
+				}
+				I_auswerten(x){
+					return f64_wertbei(this.wertbeiI, x, 0);
+				}
+				Q_auswerten(x){
+					return f64_wertbei(this.wertbeiQ, x, 0);
+				}
+				strich(xanf, xend, yanf_r, yanf_i, yend_r, yend_i){
+					cf64_VEK.strich(this.ptr, this.len, this.xanf, this.lendurchbreite, xanf, xend, yanf_r, yanf_i, yend_r, yend_i);
+					
+				}
+				normiere(){
+					this.multipliziere(1/Math.sqrt(this.betrquad));
+				}
+				multipliziere(wert){
+					cf64_VEK.multipliziere(this.ptr, this.len, wert);
+				}
+				rotiere(winkel){
+					cf64_VEK.rotiereptr(this.ptr, this.len, winkel);
+				}
+				get lendurchbreite(){return (this.len - 1)/this.breite;}
+				get bytelen(){return this.len*2*l_f64;}
+				get betrquad(){return cf64_VEK.Cf64betrquad(this.ptr, this.len, this.breite);}
+			}
+			cf64_VEK.neuwertbei =  Module.cwrap('mache_f_cf64_VEK', 'number', ['number','number','number','number']);
+			cf64_VEK.Cf64betrquad =  Module.cwrap('Cf64betrquad', 'number', ['number','number','number']);
+			cf64_VEK.neuwertbeiR =  Module.cwrap('mache_f_cf64_R_WERTBEI', 'number', ['number']);
+			cf64_VEK.neuwertbeiI =  Module.cwrap('mache_f_cf64_I_WERTBEI', 'number', ['number']);
+			cf64_VEK.neuwertbeiQ =  Module.cwrap('mache_f_cf64_Q_WERTBEI', 'number', ['number']);
+			cf64_VEK.rotiereptr =  Module.cwrap('rotiere_cf64_ARR', null, ['number','number','number']);
+			cf64_VEK.entfwertbei =  Module.cwrap('free_f_cf64_VEK', null, ['number']);
+			cf64_VEK.entfwertbeiX =  Module.cwrap('free_Cf64R_Cf64I_f_cf64_Q_WERTBEI', null, ['number']);
+			cf64_VEK.fuelle = Module.cwrap('fuelle_f_cf64_VEK', null, ['number', 'number', 'number', 'number', 'number', 'number']);
+			cf64_VEK.multipliziere = Module.cwrap('cf64_multiplizieren', null, ['number','number', 'number']);
+			cf64_VEK.strich = Module.cwrap('strich_cf64_ARR', null, ['number','number', 'number','number','number', 'number','number','number', 'number','number']); 
+			
+			function getf64ArrVonPtr(ptr, len){
+				var p = ptr >> l_f64_potenz;
+				return Module.HEAPF64.subarray(p, p + len);
+			}
+			function getByteArrVonPtr(ptr, len){
+				return Module.HEAPU8.subarray(ptr, ptr + len);
+			}
+			function getCf64WertBei(ptr, raum, zeit){
+				
+			}
+			class f64_DOPPEL_VEK{
+				constructor(gitterpunkte, xanf, xend, beschr){
+					this.len = gitterpunkte;
+					this.p1 = new f64_VEK(gitterpunkte, xanf, xend, beschr);
+					this.p2 = new f64_VEK(gitterpunkte, xanf, xend, beschr);
+					this.vertauscht = false;
+					this.tausche = () => {
+						this.vertauscht = !this.verauscht;
+					}
+					this.fertig = ()=>{
+						this.p1.fertig();
+						this.p2.fertig();
+					};
+					this.altzuneu = () => {
+						var alt = this.alt;
+						var neu = this.neu;
+						copy_vek(neu, alt, l_f64 * this.len);
+					}
+					komponenten.push(this);
+				}
+				get alt(){return this.vertauscht ? this.p2 : this.p1;}
+				get neu(){return this.vertauscht ? this.p1 : this.p2;}
+			}
+			f64_DOPPEL_VEK.tausche = Module.cwrap('tausche_f_rf64_VEK', null, ['number', 'number']);
+			
+			class cf64_DOPPEL_VEK{
+				constructor(gitterpunkte, xanf, xend, beschr){
+					this.p1 = new cf64_VEK(gitterpunkte, xanf, xend, beschr);
+					this.p2 = new cf64_VEK(gitterpunkte, xanf, xend, beschr);
+					this.vertauscht = false;
+					this.tausche = () => {
+						this.vertauscht = !this.vertauscht;
+					}
+					this.fertig = ()=>{
+						this.p1.fertig();
+						this.p2.fertig();
+					};
+					this.altzuneu = () => {
+						var alt = this.alt;
+						var neu = this.neu;
+						copy_vek(neu, alt, 2*l_f64 * this.len);
+					}
+					komponenten.push(this);
+				}
+				get alt(){return this.vertauscht ? this.p2 : this.p1;}
+				get neu(){return this.vertauscht ? this.p1 : this.p2;}
+			}
+			cf64_DOPPEL_VEK.tausche = Module.cwrap('tausche_f_cf64_VEK', null, ['number', 'number']);
+			
+			class f64_RUNGEKUTTA_MATRIX{
+				constructor(ord, arr){
+					this.structptr = f64_RUNGEKUTTA_MATRIX.mache(ord);
+					this.ptr = f64_RUNGEKUTTA_MATRIX.getarr(this.structptr);
+					this.arr = getf64ArrVonPtr(this.ptr, 2 * ord + ord*(ord-1)/2);
+					this.arr.set(arr);
+					this.ordnung = ord;
+					this.fertig = ()=>{
+						f64_RUNGEKUTTA_MATRIX.free(this.structptr);
+					};
+				}
+				
+			}
+			f64_RUNGEKUTTA_MATRIX.mache = Module.cwrap('mache_s_f64_RUNGEKUTTA_MATRIX', 'number', ['number']);
+			f64_RUNGEKUTTA_MATRIX.free = Module.cwrap('free_s_f64_RUNGEKUTTA_MATRIX', null, ['number']);
+			f64_RUNGEKUTTA_MATRIX.getarr = Module.cwrap('get_s_f64_RUNGEKUTTA_MATRIX_ptr', 'number', ['number']);
+			
+			class f64_VEK_ADD{
+				constructor(len){
+					this.ptr = f64_VEK_ADD.mache(len);
+					this.fertig = ()=>{
+						f64_VEK_ADD.free(this.ptr);
+					}
+				}
+			}
+			f64_VEK_ADD.mache = Module.cwrap('mache_f_f64_VEK_ADD', 'number', ['number']);
+			f64_VEK_ADD.free = Module.cwrap('free_f_f64_VEK_ADD', null, ['number']);
+			
+			class f64_SCHROED_WANDEL{
+				constructor(wertbeiptr, laenge, xanf, xend, masse){
+					var gitterabstand = (xend - xanf)/(laenge - 1);
+					this.ptr = f64_SCHROED_WANDEL.mache(wertbeiptr, laenge, 1/(2*masse*gitterabstand*gitterabstand), xanf, gitterabstand);
+					this.fertig = ()=>{
+						f64_SCHROED_WANDEL.free(this.ptr);
+					}
+					//this.setzepot = ()=>{f64_SCHROED_WANDEL.potsetzen(this.ptr ,doppelpot.alt.ptr, doppelpot.neu.ptr);}
+					//this.setzeparam  = (masse, gitterabstand)=>{f64_SCHROED_WANDEL.laplacegewichtsetzen(this.ptr ,1/(2*masse*gitterabstand*gitterabstand));}
+				}
+				setze_pot_ptr(ptr){
+					f64_SCHROED_WANDEL.potsetzen(this.ptr, ptr);
+				}
+			}
+			f64_SCHROED_WANDEL.mache = Module.cwrap('mache_f_f64_SCHROED_WANDEL', 'number', ['number','number','number','number','number']);
+			f64_SCHROED_WANDEL.free = Module.cwrap('free_f_f64_SCHROED_WANDEL', null, ['number']);
+			f64_SCHROED_WANDEL.potsetzen = Module.cwrap('potsetzen_f_f64_SCHROED_WANDEL', null, ['number','number','number']);
+			f64_SCHROED_WANDEL.laplacegewichtsetzen = Module.cwrap('laplacegewichtungsetzen_f_f64_SCHROED_WANDEL', null, ['number','number']);
+			
+			class f64_RUNGEKUTTA{
+				constructor(bytelen, matrix, eul, vadd){
+					this.bytelen = bytelen;
+					this.matrix = matrix;
+					this.vadd = vadd;
+					this.eul = eul;
+					this.ptr = f64_RUNGEKUTTA.mache(matrix.ordnung, bytelen, eul.ptr,  vadd.ptr, matrix.ptr);
+					this.iteration = (alt_ptr, neu_ptr, zeit, zeitschritt)=>{
+						f64_RUNGEKUTTA.iteration(this.ptr, alt_ptr, neu_ptr, zeit, zeitschritt);
+					}
+					this.fertig = ()=>{
+						f64_RUNGEKUTTA.free(this.ptr);
+					}
+					
+				}
+				
+			}
+			f64_RUNGEKUTTA.mache = Module.cwrap('mache_f64_RUNGEKUTTA', 'number', ['number','number','number','number','number']);
+			f64_RUNGEKUTTA.free = Module.cwrap('free_f64_RUNGEKUTTA', null, ['number']);
+			f64_RUNGEKUTTA.iteration = Module.cwrap('RungeKuttaAnwenden_f64', null, ['number', 'number','number','number','number']);
+			class f64_KOORD{
+				constructor(breite, hoehe, xanf,xend, yanf, yend, kipp){
+					this.breite = breite;
+					this.hoehe = hoehe;
+					this.xanf = xanf;
+					this.xend = xend;
+					this.yanf = yanf;
+					this.yend = yend;
+					this.kipp = kipp;
+					this.innenbreite = xend- xanf;
+					this.innenhoehe = yend - yanf;
+					this.xstretch = this.innenbreite/(breite - 1);
+					this.ystretch = this.innenhoehe / (hoehe - 1);
+					this.xstretchinv = 1 / this.xstretch;
+					this.ystretchinv = 1 / this.ystretch;
+					this.xnull = -xanf * this.xstretchinv;
+					this.ynull = -yanf * this.ystretchinv;
+					this.zeichnen = (ctx, vek, zeit, farbe, strichkraft)=>
+					{
+						ctx.beginPath();
+						ctx.lineWidth = strichkraft;
+						ctx.strokeStyle = farbe;
+						let f = this.xanf;
+						for(let i=0;i<breite;i+=1)
+						{
+							let wb = f64_wertbei(vek, f, zeit);
+							ctx.lineTo(i, this.ynull + wb*this.ystretchinv);
+							f += this.xstretch;
+						}
+						ctx.stroke();	
+					};
+					this.komplexZeichnen = (ctx, vekr, veki, zeit, farbe)=>
+					{
+						ctx.beginPath();
+						ctx.strokeStyle = farbe;
+						let f = this.xanf;
+						for(let i=0;i<breite;i+=1)
+						{
+							let wbr = f64_wertbei(vekr, f, zeit);
+							let wbi = f64_wertbei(veki, f, zeit);
+							ctx.lineTo(i + wbi*this.ystretchinv*this.kipp, this.ynull + wbr*this.ystretchinv);
+							f += this.xstretch;
+						}
+						ctx.stroke();	
+					};
+					this.getinnenx = (aussenx)=>{return this.xanf + aussenx * this.xstretch;};
+					this.getinneny = (ausseny)=>{return this.yanf + ausseny * this.ystretch;};
+					this.getaussenx = (innenx)=>{return (innenx - this.xanf)/this.xstretch;};
+					this.getausseny = (inneny)=>{return (inneny - this.yanf)/this.ystretch;};
+				}
+			}
+			
+			class f64_KASTEN_MODEN{
+				constructor(ord, xanf, xend, mass){
+					this.ord = ord;
+					this.xanf = xanf;
+					this.xend = xend;
+					this.mass = mass;
+					this.ptr = f64_KASTEN_MODEN.mache(ord, xanf, xend, mass);
+					this.modenptr = f64_KASTEN_MODEN.getmoden(this.ptr);
+					this.arr = getf64ArrVonPtr(this.modenptr, (ord + 1) * 2);
+					this.fertig = ()=>{f64_KASTEN_MODEN.free(this.ptr);};
+					this.normiere = ()=>{
+						f64_KASTEN_MODEN.normiere(this.ptr);
+					}
+					this.setze_masse = (mass) => {this.mass = mass; this.werte_auffrischen();}
+					this.werte_auffrischen = () => {f64_KASTEN_MODEN.setze_werte(this.ptr, this.xanf, this.xend, this.mass)}
+				}
+			}
+			f64_KASTEN_MODEN.mache = Module.cwrap('mache_f_f64_KASTEN_MODEN', 'number', ['number','number','number','number']);
+			f64_KASTEN_MODEN.free = Module.cwrap('free_f_f64_KASTEN_MODEN', null, ['number']);
+			f64_KASTEN_MODEN.getmoden = Module.cwrap('getmoden_f_f64_KASTEN_MODEN', 'number', ['number']);
+			f64_KASTEN_MODEN.normiere = Module.cwrap('normiere_f_f64_KASTEN_MODEN', null, ['number']);
+			f64_KASTEN_MODEN.setze_werte = Module.cwrap('setze_werte_f_f64_KASTEN_MODEN', null, ['number','number','number','number']);
+			
+			class f64_WANDEL_POT{
+				constructor(zeit, laenge, anf, end, aufloesung_rad, modus){
+					this.zeit = zeit;
+					this.laenge = laenge;
+					this.anf = anf;
+					this.end = end;
+					this.aufloesung_rad = aufloesung_rad;
+					this.ptr = f64_WANDEL_POT.mache(zeit, laenge, anf, end, aufloesung_rad, modus);
+					this.wertbeiptr = f64_WANDEL_POT.wertbeiptr(this.ptr);
+					this.fertig = () =>{
+						f64_WANDEL_POT.free(this.ptr);
+					}
+					this.strich = (xanf, xend, yanf, yend, zeit) =>{
+						f64_WANDEL_POT.strich(this.ptr, xanf, xend, yanf, yend, zeit, this.aufloesung_rad);
+					}
+					this.naechster_frame = (zeit)=>{return f64_WANDEL_POT.naechsterframe(this.ptr, zeit);};
+					this.letzter_frame = (zeit)=>{return f64_WANDEL_POT.letzterframe(this.ptr, zeit);};
+					this.aktueller_frame = (zeit)=>{return f64_WANDEL_POT.aktuellerframe(this.ptr, zeit);};
+					this.loescheframe = (zeit)=>{return f64_WANDEL_POT.loescheframe(this.ptr, zeit);};
+					this.schreibe = (schr)=>{
+						var ges = f64_WANDEL_POT.framezahl(this.ptr);
+						schr.schreibeUInt(ges);
+						var jetzt = f64_WANDEL_POT.anfzeit(this.ptr);
+						for(let i = 0; i < ges; i++){
+							var len = f64_WANDEL_POT.framelen(this.ptr, jetzt);
+							schr.schreibeF64(jetzt);
+							schr.schreibeUInt(len);
+							schr.schreibeF64(f64_WANDEL_POT.frameanf(this.ptr, jetzt));
+							schr.schreibeF64(f64_WANDEL_POT.frameend(this.ptr, jetzt));
+							schr.schreibeUInt8(f64_WANDEL_POT.framemodus(this.ptr, jetzt));
+							schr.schreibeF64Daten(getByteArrVonPtr(f64_WANDEL_POT.frameptr(this.ptr, jetzt), len * l_f64));//push(new Blob(getByteArrVonPtr(f64_WANDEL_POT.frameptr(this.ptr, jetzt), len * l_f64)));
+							jetzt = this.naechster_frame(jetzt);
+						}
+						
+					}
+				}
+				getframeinfo(jetzt){
+					var len = f64_WANDEL_POT.framelen(this.ptr, jetzt);
+					var anf = f64_WANDEL_POT.frameanf(this.ptr, jetzt);
+					var end = f64_WANDEL_POT.frameend(this.ptr, jetzt);
+					return {
+						len: len,
+						arr: getf64ArrVonPtr(f64_WANDEL_POT.frameptr(this.ptr, jetzt), len),
+						xanf: anf, 
+						xend: end,
+						deltax: (end - anf)/(len - 1)};
+				}
+				auswerten(x, t){
+					return f64_wertbei(this.wertbeiptr, x, t);
+				}
+			}
+			f64_WANDEL_POT.lese = (les)=>{
+				var framezahl = les.leseUInt();
+				var zeit = les.leseF64();
+				var len = les.leseUInt();
+				var anf = les.leseF64();
+				var end = les.leseF64();
+				var modus = les.leseUInt8();
+				var wp = new f64_WANDEL_POT(zeit, len, anf, end, 0.0000000001, 0);
+				buff = f64_WANDEL_POT.frameptr(wp.ptr, zeit);
+				buff = getf64ArrVonPtr(buff, len);
+				buff.set(les.leseF64Daten(len), 0);
+				var buff;
+				for(let i = 1; i < framezahl;i ++){
+					zeit = les.leseF64();
+					len = les.leseUInt();
+					anf =  les.leseF64();
+					end = les.leseF64();
+					modus = les.leseUInt8();
+					f64_WANDEL_POT.beschaffeFrame(wp.ptr, zeit, 0.0000000001, len, anf, end, modus);
+					buff = f64_WANDEL_POT.frameptr(wp.ptr, zeit);
+					buff = getf64ArrVonPtr(buff, len);
+					buff.set(les.leseF64Daten(len), 0);
+				}
+				return wp;
+			}
+			f64_WANDEL_POT.segmentLesen = (les)=>{
+				var neu = f64_WANDEL_POT.lese(les);
+				if(wandelpot)
+					wandelpot.fertig();
+				wandelpot = neu;
+				berechnen.setze_pot(neu);
+			}
+			Konzepte.push(f64_WANDEL_POT);
+			async function testbla(){
+				var a = new schreibevorgang();
+				wandelpot.schreibe(a);
+				var e = await new Response(new Blob(a.arr)).arrayBuffer();
+				var b = new lesevorgang(e,0);
+				return f64_WANDEL_POT.lese(b);
+			}
+			f64_WANDEL_POT.mache = Module.cwrap('mache_f64_WANDEL_POT', 'number', ['number','number','number','number','number','number']);
+			f64_WANDEL_POT.free = Module.cwrap('free_f64_WANDEL_POT', null, ['number']);
+			f64_WANDEL_POT.strich = Module.cwrap('strich_f64_WANDEL_POT', null, ['number','number','number','number','number','number','number']);
+			f64_WANDEL_POT.beschaffeFrame = Module.cwrap('beschaffe_s_f64_KEY_FRAME', 'number', ['number','number','number','number','number','number','number']);
+			f64_WANDEL_POT.naechsterframe = Module.cwrap('naechster_keyframe_f64_WANDEL_POT', 'number', ['number','number']);
+			f64_WANDEL_POT.aktuellerframe = Module.cwrap('aktueller_keyframe_f64_WANDEL_POT', 'number', ['number','number']);
+			f64_WANDEL_POT.letzterframe = Module.cwrap('letzter_keyframe_f64_WANDEL_POT', 'number', ['number','number']);
+			f64_WANDEL_POT.framezahl = Module.cwrap('frame_zahl_f64_WANDEL_POT', 'number', ['number']);
+			f64_WANDEL_POT.anfzeit = Module.cwrap('anfangszeit_f64_WANDEL_POT', 'number', ['number']);
+			f64_WANDEL_POT.framelen = Module.cwrap('frame_len_f64_WANDEL_POT', 'number', ['number', 'number']);
+			f64_WANDEL_POT.frameanf = Module.cwrap('frame_anf_f64_WANDEL_POT', 'number', ['number', 'number']);
+			f64_WANDEL_POT.frameend = Module.cwrap('frame_end_f64_WANDEL_POT', 'number', ['number', 'number']);
+			f64_WANDEL_POT.framemodus = Module.cwrap('frame_modus_f64_WANDEL_POT', 'number', ['number', 'number']);
+			f64_WANDEL_POT.frameptr = Module.cwrap('frame_ptr_f64_WANDEL_POT', 'number', ['number', 'number']);
+			f64_WANDEL_POT.wertbeiptr = Module.cwrap('wertbei_ptr_f64_WANDEL_POT', 'number', ['number']);
+			f64_WANDEL_POT.loescheframe = Module.cwrap('loesche_frame_f64_WANDEL_POT', null, ['number','number']);
+			f64_WANDEL_POT.titel = "F64WANDELPOT";
+			
+			function glaetten(ordnung){
+				var ptr = Module._malloc(ordnung*2*l_f64);
+				cf64_SchwingungsZerlegung(berechnen.vek_ptr, berechnen.len, ptr, ordnung);
+				cf64_SchwingungsZusammensetzung(ptr, ordnung, berechnen.vek_ptr, berechnen.len);
+				Module._free(this.ptr);
+				berechnen.vek.normiere();
+			}
+			
+			var getf64;
+			var setf64;
+			var re_f64_wertbei = Module.cwrap('re_f64_wertbei', 'number', ['number','number','number']);
+			var im_f64_wertbei = Module.cwrap('im_f64_wertbei_nachreichen', 'number', []);
+			var f64_wertbei = Module.cwrap('f64_wertbei', 'number', ['number','number','number']);
+			var Dsetzekonst = Module.cwrap('Dsetzekonst', null, ['number','number','number']);
+			var cf64_SchwingungsZerlegung = Module.cwrap('cf64_SchwingungsZerlegung', null, ['number','number','number','number']);
+			var cf64_SchwingungsZusammensetzung = Module.cwrap('cf64_SchwingungsZusammensetzung', null, ['number','number','number','number']);
+			var schwingungs_zer = Module.cwrap('DSchwingungsZerlegung', null, ['number','number','number','number','number','number']);
+			var schwingungs_zus = Module.cwrap('DSchwingungsZusammensetzung', null, ['number','number','number','number','number','number']);
+			var Cf64quad_f64iff = Module.cwrap('Cf64quad_f64iff', 'number', ['number','number','number','number']); 
+			var Cf64Mittlere_abw = Module.cwrap('Cf64Mittlere_abw', 'number', ['number','number','number']); 
+			var Cf64Mittlerer_Betrag = Module.cwrap('Cf64Mittlerer_Betrag', 'number', ['number','number']); 
+			var mache_arbeiter;
+			var copy_vek;
+			function bereit(){
+				stift = new potential_stift();//new vektor_stift(100);
+				getf64 = Module.cwrap('getf64', 'number', ['number']);
+				setf64 = Module.cwrap('setf64', null, ['number','number']);
+				mache_arbeiter = Module.cwrap('mache_arbeiter', null, ['number']);
+				copy_vek = Module.cwrap('copy_vek', null, ['number','number','number']);
+				ansichtEinrichten();
+				window.onresize = ansichtsAenderung;
+				parameter_anzeigen();
+				//pseudozufallsvektor();
+				if(!messmodus)
+					neustart();
+				//zeichnen();
+			}
+			function zerlegneu(){
+				if(zerleg != undefined){
+					zerleg.fertig();
+				}
+				zerleg = new f64_KASTEN_MODEN(ordnung,  anfwert, anfwert + breite_anzeige.value, masse_anzeige.value);
+			}
+			function zufallsvektor(){
+				zerlegneu();
+				let arr = zerleg.arr;
+				for(let i = ordnung * 2 - 1; i > 0; i--)
+					arr[i] = (Math.random()-0.5)*2;
+				arr[ordnung*2] = 1;
+				zerleg.normiere();
+			}
+			function pseudozufallsvektor(){
+				zerlegneu();
+				let arr = zerleg.arr;
+				var i = 0;
+				for(i = 0; i < arr.length; i ++){
+				arr[i] = (((99991*i*i)%1033)/(1031 + 1)-0.5)*2;//1031 + 1 verhindert 3 2 -> 6 4 bit konvertierung durch suchen + ersetzen
+				}
+				arr[0] = 0;
+				arr[1] = 0;
+				arr[zerleg.arr.length-2] = 1;
+				arr[zerleg.arr.length-1] = 0;
+				zerleg.normiere();
+			}
+			function setze_o(wert){
+				ordnung = wert;
+				pseudozufallsvektor();
+			}
+			
+			function zeitwandel(schritt, anzahl){
+				for(let i =0;i<anzahl; i++){
+						if(!messmodus || framezahl < zeitschritte){
+							berechnen.iteration(uhr.valueAsNumber, schritt);
+							uhr.valueAsNumber += schritt;
+							if(messmodus)
+								framezahl += 1;
+						}
+						else{
+							aktiv = false;
+						}
+					}
+					
+				betrquad = cf64_VEK.Cf64betrquad(berechnen.vek_ptr, berechnen.vek.len, berechnen.vek.breite);//TODO: berechnen.vek.neu.betrquad;
+				betrquad_anzeige.textContent = ""+betrquad;
+			}
+			
+			function hauptschleife(){
+				if(aktiv){
+					zeitwandel(deltat.valueAsNumber,schritteproframe.value);
+					if(messmodus){
+						cbuff.fuelle(zerleg.ptr, uhr.valueAsNumber);
+						mdiff = Cf64Mittlere_abw(berechnen.vek_ptr, cbuff.ptr, cbuff.len);
+						quaddiff_anzeige.textContent = ""+mdiff;
+						
+						betrdurch = Cf64Mittlerer_Betrag(cbuff.ptr, cbuff.len);//TODO: berechnen.vek.neu.betrquad;
+						betrdurch_anzeige.textContent = ""+ betrdurch;
+					}
+					window.requestAnimationFrame(hauptschleife);
+					zeichnen();
+				}
+				else if(messmodus)
+					automatisch();
+			}
+			
+			
+			function automatisch_start(){
+			
+				start_z = uhr.valueAsNumber;
+				start_gp = gitterpunkte;
+				start_zp = zeitschritte;
+				start_m = masse;
+				start_o = ordnung;
+				
+				gp_zp_zaehler = 1;
+				gp_rp_zaehler = 1;
+				gp_o_zaehler = 1;
+				gp_m_zaehler = 1;
+				gp_wh_zaehler = 1;
+				
+				datn = "m"+masse+"o"+ordnung+"zi"+zeitraum+"ri"+breite+"zp"+zeitschritte+"rp"+gitterpunkte+"mae"+gp_m_ae+"mg"+gp_m_ges+"oae"+gp_o_ae+"og"+gp_o_ges+"zpae"+gp_zp_ae+"zpg"+gp_zp_ges+"rpae"+gp_rp_ae+"rpg"+gp_rp_ges+"w"+gp_wh+"f64";
+				outp = ""
+				outp += "# masse: " + masse + nl;
+				outp += "# raumintervall: " + breite + nl;
+				outp += "# zeitintervall: " + zeitraum + nl;
+				outp += "# zeitpunkte: " + zeitschritte + nl;
+				outp += "# raumpunkte: " + gitterpunkte + nl;
+				outp += "# ordnung: " + ordnung + nl;
+				outp += "# Präzision: f64" + nl;
+				outp += "# Wiederholungen: " + gp_wh + nl;
+				outp += "# Zeitpunkte Änderung: " + gp_zp_ae + " Gesamtmessungen: " + gp_zp_ges + nl;
+				outp += "# Raumpunkte Änderung: " + gp_rp_ae + " Gesamtmessungen: " + gp_rp_ges + nl;
+				outp += "# Ordnung Änderung: " + gp_o_ae + " Gesamtmessungen: " + gp_o_ges + nl;
+				outp += "# Masse Änderung: " + gp_m_ae + " Gesamtmessungen: " + gp_wh + nl;
+				outp += "# Plotte:"+ nl + "#Masse Ordnung Zeitpunkte Raumpunkte Zeit mittel_abw_betr_num_anal  mittel_betr_anal norm_betr_num"+ nl + nl;
+				
+				pseudozufallsvektor();
+				neustart();
+			}
+			function automatisch(){
+				outp += masse + " " + ordnung + " " + zeitschritte + " " + gitterpunkte + " " + uhr.valueAsNumber + " " + mdiff+" "+ betrdurch + " " + betrquad + " " + nl;
+				outpanzeige.value = outp;
+				
+				if(gp_wh_zaehler < gp_wh){
+						gp_wh_zaehler += 1;
+						framezahl = 0;
+						if(!aktiv)
+							window.requestAnimationFrame(hauptschleife);
+						aktiv = true;
+					}
+				else{
+					if(gp_wh != 1)
+						outp += nl;
+					uhr.valueAsNumber = start_z;
+					gp_wh_zaehler = 1;
+					if(gp_m_zaehler < gp_m_ges){
+						gp_m_zaehler += 1;
+						masse += gp_m_ae;
+						neustart();
+					}
+					else{
+						if(gp_m_ges != 1)
+							outp += nl;
+						if(gp_o_zaehler < gp_o_ges){
+							setze_o(ordnung + gp_o_ae);
+							neustart();
+							gp_o_zaehler += 1;
+						}
+						else{
+							if(gp_o_ges != 1)
+								outp += nl;
+							setze_o(start_o);
+							gp_o_zaehler = 1;
+							
+					
+							masse = start_m;
+							gp_m_zaehler = 1;
+							if(gp_zp_zaehler < gp_zp_ges){
+			
+								zeitschritte += gp_zp_ae;
+								neustart();
+					
+								gp_zp_zaehler += 1;
+							}
+							else if(gp_rp_zaehler < gp_rp_ges){
+								if(gp_zp_ges != 1)
+									outp += nl;
+								gp_zp_zaehler = 1;
+								zeitschritte = start_zp;
+					
+								gitterpunkte += gp_rp_ae;
+								neustart();
+					
+								gp_rp_zaehler += 1;
+							}
+							else{
+									a.href = URL.createObjectURL(new Blob([outp]));
+									a.download = datn + ".txt";
+									a.click();
+					
+									uhr.valueAsNumber = start_z;
+									gitterpunkte = start_gp;
+									zeitschritte = start_zp;
+									masse = start_m;
+									setze_o(start_o);
+								}
+						}
+					}
+				}
+				parameter_anzeigen();
+			}
+			
+			
+
+			
+			function buffer_aus_Datei(f){
+				return new Promise((resolve, reject) => {
+						var reader = new FileReader();
+						reader.onload = () => { resolve(reader.result ); };
+						reader.readAsArrayBuffer(f);
+					});
+			}
+			
+			function leseAlleSegmente(les){
+				while(les.pos != null && les.pos < les.buff.byteLength){
+					var aktuell = les.leseSegment();
+					for(let i = 0; i< Konzepte.length;i++)
+						if(Konzepte[i].titel == aktuell.titel)
+							Konzepte[i].segmentLesen(aktuell);
+					
+				}
+			}
+			
+			function testeStopp(){
+				if( zeitraum < uhr.valueAsNumber + deltat.valueAsNumber / 2){
+					start_stop();
+					return true;
+				}
+				return false;
+			}
+			
+			class schreibevorgang{
+				constructor(arr = []){
+					this.arr = arr;
+				}
+				schreibeF64(nummer){
+					var v = new Float64Array(1);
+					v[0] = nummer;
+					this.arr.push(v);
+				}
+				schreibeUInt8(nummer){
+					var zahl = new Uint8Array(1);
+					zahl[0] = nummer;
+					this.arr.push(zahl);
+				}
+				schreibeUInt(nummer){
+					var zahl = new Uint32Array(1);
+					zahl[0] = nummer;
+					this.arr.push(zahl);
+				}
+				schreibeSegment(name, schr){
+					name += ":";
+					var encoder = new TextEncoder()
+					var textenc = encoder.encode(name);
+					this.arr.push(textenc);
+					var blo = new Blob(schr.arr);
+					this.schreibeUInt(blo.size);
+					this.arr.push(blo);	
+				}
+				schreibeF64Daten(arr){
+					this.arr.push(arr);
+					console.log(this.arr);
+				}
+				Blob(){
+					return new Blob(this.arr);
+				}
+			}
+			class lesevorgang{
+				constructor(buff, pos = 0){
+					this.pos = pos;
+					this.buff = buff;
+				}
+				leseUInt(){
+					if(this.buff.byteLength - this.pos < 4)
+						return null;
+					var wert = new Uint32Array(this.buff.slice(this.pos, this.pos + 4))[0];
+					this.pos += 4;
+					return wert;
+				}
+				leseUInt8(){
+					if(this.buff.byteLength - this.pos < 1)
+						return null;
+					var wert = new Uint8Array(this.buff.slice(this.pos, this.pos + 1))[0];
+					this.pos += 1;
+					return wert;
+				}
+				leseSegment(){
+					var na = this.findeDoppelpunkt();
+					var len = this.leseUInt();
+					var r = new lesevorgang(this.buff.slice(this.pos, this.pos + len));
+					this.pos += len;
+					r.titel = na;
+					return r;
+				}
+				leseF64(){
+					if(this.buff.byteLength - this.pos < l_f64)
+						return null;
+					var wert = new Float64Array(this.buff.slice(this.pos, this.pos + l_f64))[0];
+					this.pos += l_f64;
+					return wert;
+				}
+				leseF64Daten(laenge){
+					var len = (laenge << l_f64_potenz);
+					var wert = this.buff.slice(this.pos, this.pos + len);
+					this.pos += len;
+					return new Float64Array(wert);
+				}
+				
+				findeDoppelpunkt(){
+				var arr = new Uint8Array(this.buff);
+				var i = this.pos;
+				var wert;
+				while(i < arr.byteLength){
+					if(arr[i] == 58)
+					{
+						var dec = new TextDecoder();
+						wert = dec.decode(arr.slice(this.pos, i));
+						this.pos = i + 1;
+						return wert;
+					}
+					i++;
+				}
+				return null;
+			}
+			}
+			
+			function speichern(){
+				schr = new schreibevorgang();
+				
+				var neu;
+				
+				if(speicherverhalten.value>0){
+					neu = new schreibevorgang();
+					wandelpot.schreibe(neu);
+					schr.schreibeSegment(f64_WANDEL_POT.titel, neu);
+				}
+				
+				if(speicherverhalten.value<2){
+				neu = new schreibevorgang();
+				berechnen.schreibe(neu);
+				schr.schreibeSegment(f64_SCHROED_BERECHNEN.titel, neu);
+				
+				neu = new schreibevorgang();
+				new ZEIT_KONZEPT().schreibe(neu);
+				schr.schreibeSegment(ZEIT_KONZEPT.titel, neu);
+				}
+				
+				
+				
+				/*var vek = berechnen.vek_arr;
+				var pot = getpot();
+				
+				var a = document.getElementById("a");
+				var arr = [];
+				schr.schreibeSegment(arr, "f64_compl_1d_arr", [vek.buffer.slice(vek.byteOffset, vek.byteOffset + vek.byteLength)]);
+				schreibeSegment(arr, "f64_1d_arr", [pot.buffer.slice(pot.byteOffset, pot.byteOffset + pot.byteLength)]);
+				schreibeSegment(arr, "zeit_f64", [Schreibef64(zeit)]);
+				schreibeSegment(arr, "gitter_punkt_abstand_f64", [Schreibef64(gitterPunktAbstand)]);
+				schreibeSegment(arr, "zeit_schritt_f64", [Schreibef64(deltat.valueAsNumber)]);
+				schreibeSegment(arr, "masse_f64", [Schreibef64(masse)]);*/
+				speicherlink.href = URL.createObjectURL(schr.Blob());
+				speicherlink.download = prompt("Bitte den Dateinamen eingeben");
+				speicherlink.click();
+			}
+			function laden(e){
+				var files = e.target.files; // FileList object
+
+				// files is a FileList of File objects. List some properties.
+				var output = [];
+				for (var i = 0, f; f = files[i]; i++) {
+					var arr = buffer_aus_Datei(f).then((arr) => {
+						//leseAlleSegmente(new lesevorgang(arr, 0));
+						var les = new lesevorgang(arr, 0);
+						leseAlleSegmente(les);
+						zeichnen();
+					});
+				}
+			}
+			function segmentLaden(name, buff){
+				if(name == "f64_compl_1d_arr"){
+					var vek = getvek();
+					new Uint8Array(vek.buffer, vek.byteOffset, vek.byteLength).set(new Uint8Array(buff), 0);
+				}else if(name == "f64_1d_arr"){
+					var pot = getpot();
+					new Uint8Array(pot.buffer, pot.byteOffset, pot.byteLength).set(new Uint8Array(buff), 0);
+				}else if(name == "zeit_f64"){
+					uhr.valueAsNumber = buff.leseF64();
+				}else if(name == "gitter_punkt_abstand_f64"){
+					gitterPunktAbstand = buff.leseF64();
+				}else if(name == "zeit_schritt_f64"){
+					deltat.valueAsNumber = buff.leseF64();
+				}else if(name == "masse_f64"){
+					masse = buff.leseF64();
+				}
+				parameter_anzeigen();
+				parameter_aendern()
+				console.log("das Segment heißt: " + name);
+			}
+			
+			
+			class potential_stift{
+				rotiere(){}
+				constructor(){
+					
+				}
+				start(x, y){
+				
+				}
+				malen(x, y, xalt, yalt){
+					wandelpot.strich(koordPot.getinnenx(xalt), koordPot.getinnenx(x), koordPot.getinneny(yalt), koordPot.getinneny(y), uhr.valueAsNumber);
+					zeichnen();
+				}
+				stop(x, y, xalt, yalt){
+				
+				}
+			}
+			class potential_stift_gerade{
+				rotiere(){}
+				constructor(){
+					
+				}
+				start(x, y){
+					this.xstart = x;
+					this.ystart = y;
+				}
+				malen(x, y, xalt, yalt){
+				}
+				stop(x, y, xalt, yalt){
+					wandelpot.strich(koordPot.getinnenx(this.xstart), koordPot.getinnenx(x), koordPot.getinneny(this.ystart), koordPot.getinneny(y));
+					zeichnen();
+				
+				}
+			}
+			function aktiviere(){
+				if(!this.aktiv){
+					window.requestAnimationFrame(hauptschleife);
+				}
+			}
+			class vektor_stift{
+				rotiere(){}
+				constructor(ordnung){
+					this.ordnung = ordnung;
+					this.aktiv = aktiv;
+				}
+				start(x, y){
+					this.xstart = x;
+					this.ystart = y;
+				}
+				malen(x, y, xalt, yalt){
+					berechnen.vek.strich(koord.getinnenx(xalt), koord.getinnenx(x), koord.getinneny(yalt), 0, koord.getinneny(y), 0);
+					zeichnen();
+				}
+				stop(x, y, xalt, yalt){
+					glaetten(this.ordnung);
+					zeichnen();
+					if(this.aktiv)
+						aktiviere();
+				}
+			}
+			function stiftAendern(){
+				if(stiftselect.value == "potstift")
+					stift = new potential_stift();
+				else if(stiftselect.value == "vekstift")
+					stift = new vektor_stift(vekstiftordnung);
+				else if(stiftselect.value == "potstift_g")
+					stift = new potential_stift_gerade();
+			}
+			
+		</script>
+	</body>
+</html>
