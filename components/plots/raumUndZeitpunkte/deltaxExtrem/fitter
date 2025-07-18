@@ -1,0 +1,4 @@
+#!/bin/gnuplot
+plf = "werteKombiniert"
+g(x) = b*x**a+c
+fit g(x) plf using (1/($4-1)):($6/$7) via a, b ,c

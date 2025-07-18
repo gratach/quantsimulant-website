@@ -1,0 +1,602 @@
+<html>
+  <head>
+    <title></title>
+    <meta content="" charset="utf-8">
+    <style>*{box-sizing: border-box; margin:0;border:0;padding:0;overflow: hidden;}</style>
+  </head>
+	<body style="background-image:url('bild/hintergrund2.png'); background-size:cover; background-attachment:fixed; background-position:center">
+	</body>
+	<script>
+		
+		vortrag = (rahmen = document.body)=>{return{
+			rahmen : rahmen,
+			verlauf : [[]],
+			
+			vorplus : function(f){
+				if(this.verlauf.length>1)
+					this.verlauf[this.verlauf.length - 2].push(f)
+			},
+			plus: function(f){
+				this.verlauf[this.verlauf.length - 1].push(f)
+			},
+			
+			weiter: function(){
+				this.verlauf.push([])
+			},
+			
+			springe: function(){
+				let i = this.verlauf.length
+				this.weiter()
+				this.verlauf[i].push({
+					davor : (x)=>{
+						this.sprung = true
+					}
+				})
+			},
+		
+			//Funktion zum updaten von Ressourcen
+			erneuere: function(){
+				this.frame()
+			},
+			//Inhalte, die in jedem Frame gezeichnet werden
+			inhalte : new Set(),
+			
+			pruf:0,
+			
+			vorneRein : function(i){
+				//console.log("vorneRein", i)
+				if(this.pruf!=i){
+					this.pruf=i
+					for(let x of this.verlauf[i])
+						if(x.vorneRein)
+							x.vorneRein()
+				}
+			},
+			
+			hintenRaus : function(i){
+				//console.log("hintenRaus", i)
+				if(this.pruf==i){
+					for(let x of this.verlauf[i])
+						if(x.hintenRaus)
+							x.hintenRaus()
+				}
+			
+			},
+			
+			hintenRein : function(i){
+				//console.log("hintenRein", i)
+				if(this.pruf!=i){
+				this.pruf=i
+					for(let x of this.verlauf[i])
+						if(x.hintenRein)
+							x.hintenRein()
+				}
+			},
+			
+			vorneRaus : function(i){
+				//console.log("vorneRaus", i)
+				if(this.pruf==i){
+					for(let x of this.verlauf[i])
+						if(x.vorneRaus)
+							x.vorneRaus()
+				}
+			},
+			
+			drinnen : function(i){
+				//console.log("drinnen", i)
+				for(let x of this.verlauf[i])
+					if(x.drinnen)
+						x.drinnen()
+			},
+			
+			davor : function(i, proz){
+				//console.log("davor", i)
+				for(let x of this.verlauf[i])
+					if(x.davor)
+						x.davor(proz)
+			},
+			
+			danach : function(i, proz){
+				//console.log("danach", i)
+				for(let x of this.verlauf[i])
+					if(x.danach)
+						x.danach(proz)
+			},
+			
+			gehevor : function(){
+				this.ziel += 1
+				if(this.ziel >= this.verlauf.length)
+					this.ziel = this.verlauf.length - 1
+				this.starteAnim()
+			},
+			
+			gehehinter : function(){
+				this.ziel -= 1
+				if(this.ziel < 0)
+					this.ziel = 0
+				this.starteAnim()
+			},
+			
+			
+			ziel : 0,
+			ort : 0,
+			zielzeit : 0,
+			altzeit : 0,
+			altort : 0,
+			framezeit : 1000,
+			animiert : false,
+			sprung : false,
+			starteAnim: function(zz = null){
+				this.altzeit = new Date().getTime()
+				this.altort = this.ort
+				this.zielzeit = zz === null ? this.altzeit + this.framezeit : zz
+				if(!this.animiert){
+					this.animiert = true
+					window.requestAnimationFrame(()=>{this.animiere()})
+				}
+			},
+			frame: function(){
+				for(x of this.inhalte)
+					if(x.frame)
+						x.frame()
+			},
+			animiere: function(){
+				let zeit = new Date().getTime()
+				let fertig = zeit > this.zielzeit
+				//console.log(this.altort, this.ziel, this.altzeit, this.framezeit, zeit)
+				let gehezu = fertig ? this.ziel : this.altort + (this.ziel - this.altort) * (zeit - this.altzeit) / this.framezeit
+				
+				let stufe = this.ort % 1
+				let diskret = this.ort - stufe
+				if(stufe + diskret < gehezu)
+					while(stufe + diskret < gehezu){
+						if(stufe == 0)
+							this.hintenRaus(diskret)
+						if(diskret + 1 <= gehezu){
+							diskret += 1
+							stufe = 0
+							this.vorneRein(diskret)
+						}
+						else{
+							if(this.sprung){
+								this.sprung = false
+								stufe = 0
+								diskret += 1
+								this.vorneRein(diskret)
+								this.altort = diskret
+								this.altzeit = zeit
+							}
+							else
+								stufe = gehezu - diskret
+						}
+					}
+				else
+					while(stufe + diskret > gehezu){
+						if(stufe == 0){
+							this.vorneRaus(diskret)
+							diskret -= 1
+						}
+						if(diskret >= gehezu){
+							stufe = 0
+							this.hintenRein(diskret)
+						}
+						else{
+							if(this.sprung){
+								this.sprung = false
+								stufe = 0
+								this.hintenRein(diskret)
+								this.altort = diskret
+								this.altzeit = zeit
+							}
+							else
+								stufe = gehezu - diskret
+						}
+					}
+				if(stufe == 0){
+					this.drinnen(diskret)
+				}				
+				else{
+					this.danach(diskret, stufe)
+					this.davor(diskret + 1, stufe)
+				}
+				this.ort = diskret + stufe
+				this.frame()
+				if(this.ort == this.ziel)
+					this.animiert = false
+				else
+					window.requestAnimationFrame(()=>{this.animiere()})
+			},
+			beginne : function(){
+				for(let x of this.verlauf[0])
+					if(x.vorneRein)
+						x.vorneRein()
+				onkeydown = (e)=>{
+					//console.log(e.key)
+					if(e.key == " " || e.key == "ArrowLeft")
+						this.gehehinter()
+					if(e.key == "z" || e.key == "ArrowRight")
+						this.gehevor()
+				}
+			},
+		}}
+		anfang = (a)=>{return{
+			vorneRein : ()=>a.beginne(),
+			vorneRaus : ()=>a.beende(),
+			lade : (u)=>a.lade ? a.lade(u) : null
+		}}
+		ende = (e)=>{return{
+			hintenRaus : ()=>{
+			e.beende()},
+			hintenRein : ()=>{e.beginne()},
+			lade : (u)=>a.lade ? a.lade(u) : null
+		}}
+		webseite = function(vortrag, url,  rahmen = null){
+			if(rahmen === null)
+				rahmen = vortrag.rahmen
+			let ifr = document.createElement("iframe")
+			ifr.style.width = "100%"
+			ifr.style.height = "100%"
+			ifr.setAttribute("src", url)
+			let vorb = document.createElement("button")
+			vorb.style.width = "3%"
+			vorb.style.height = "10%"
+			vorb.style.position = "absolute"
+			vorb.style.top = "45%"
+			vorb.style.left = "97%"
+			vorb.textContent = ">"
+			vorb.onclick = ()=>{vortrag.gehevor()}
+			let hintb = document.createElement("button")
+			hintb.style.width = "3%"
+			hintb.style.height = "10%"
+			hintb.style.position = "absolute"
+			hintb.style.top = "45%"
+			hintb.style.left = "0%"
+			hintb.textContent = "<"
+			hintb.onclick = ()=>{vortrag.gehehinter()}
+			let r = {
+				url : url,
+				vortrag : vortrag,
+				ifr : ifr,
+				vorb : vorb,
+				hintb : hintb,
+				beginne : function(){
+					rahmen.appendChild(this.ifr)
+					rahmen.appendChild(this.vorb)
+					rahmen.appendChild(this.hintb)
+					rahmen.onresize()
+				},
+				beende : function(){
+					rahmen.removeChild(this.ifr)
+					rahmen.removeChild(this.vorb)
+					rahmen.removeChild(this.hintb)
+					rahmen.onresize = ()=>{}
+				},
+				start : function(){
+					this.vortrag.plus(anfang(this))
+				},
+				stopp : function(){
+					this.vortrag.plus(ende(this))
+				},
+			}
+			r.start()
+			return r
+		}
+		leinwand = (vortrag, rahmen = null)=>{
+			if(rahmen === null)
+				rahmen = vortrag.rahmen
+			let canv = document.createElement("canvas")
+			canv.style.width = "100%"
+			canv.style.height = "100%"
+			let ctx = canv.getContext("2d")
+			let r = {
+				rahmen : rahmen,
+				vortrag : vortrag,
+				canv : canv,
+				ctx : ctx,
+				inhalte : new Set(),
+				frame : function(){
+					this.ctx.clearRect(0,0,this.canv.width, this.canv.height)
+					for(let x of this.inhalte)
+						if(x.frame)
+							x.frame()
+				},
+				beginne : function(){
+					rahmen.appendChild(this.canv)
+					this.vortrag.inhalte.add(this)
+					rahmen.onresize = ()=>{
+						this.canv.width = canv.getBoundingClientRect().width;
+						this.canv.height = canv.getBoundingClientRect().height;
+						this.vortrag.erneuere()
+					}
+					rahmen.onresize()
+				},
+				beende : function(){
+					this.vortrag.inhalte.delete(this)
+					rahmen.removeChild(this.canv)
+					rahmen.onresize = ()=>{}
+				},
+				start : function(){
+					this.vortrag.plus(anfang(this))
+				},
+				stopp : function(){
+					this.vortrag.plus(ende(this))
+				},
+			}
+			r.start()
+			return r
+		}
+		ether = (ziel, position = (x, y) => [0, 0, 1])=>{
+			let r = {
+				position: position,
+				ziel : ziel,
+				vortrag : ziel.vortrag,
+				ctx : ziel.ctx,
+				canv : ziel.canv,
+				inhalte : new Set(),
+				frame : function(){
+					this.ctx.save()
+					let koord = this.koords(this.position(this.ziel.canv.width, this.ziel.canv.height))
+					this.ctx.translate(koord[0]+this.ziel.canv.width / 2, koord[1]+ this.ziel.canv.height / 2)
+					this.ctx.scale(koord[2], koord[3])
+					this.ctx.translate(-this.ziel.canv.width / 2,  -this.ziel.canv.height / 2)
+					for(let x of this.inhalte)
+						if(x.frame)
+							x.frame()
+					this.ctx.restore()
+				},
+				koords: function(koord){
+					if(koord.length == 2)
+						koord.push(1)
+					if(koord.length == 3)
+						koord.push(koord[2])
+					return koord
+				},
+				wandel: function(neupos){
+					let altpos = this.position
+					this.position = neupos
+					this.vortrag.vorplus({hintenRein:()=>{this.position = altpos}})
+					this.vortrag.plus({
+						davor:(t)=>{this.position = (x, y)=>{
+							let a = this.koords(altpos(x,y))
+							let n = this.koords(neupos(x,y))
+							return [a[0] + (n[0] - a[0]) * t, a[1] + (n[1] - a[1]) * t, a[2] + (n[2] - a[2]) * t, a[3] + (n[3] - a[3]) * t]
+						}},
+						vorneRein:()=>{this.position = neupos}
+					})
+				},
+				beginne : function(){
+					this.ziel.inhalte.add(this)
+				},
+				beende : function(){
+					this.ziel.inhalte.delete(this)
+				},
+				start : function(){
+					this.vortrag.plus(anfang(this))
+					this.vortrag.plus({vorneRein:()=>{this.position = position}})
+				},
+				stopp : function(){
+					this.vortrag.plus(ende(this))
+				}
+			}
+			r.start()
+			return r
+		}
+		schild = (quelle, position, ziel, zoom = 1, altposition = null)=>{
+			let canv
+			if(typeof(quelle) == "string"){
+				var bild = new Image()
+				if(quelle.substr(-4) == ".svg"){
+					console.log("SVG")
+					canv = document.createElement("canvas")
+					bild.onload = ()=>{
+						var buffctx = canv.getContext("2d")
+						canv.width = bild.width *zoom
+						canv.height = bild.height*zoom
+						buffctx.drawImage(bild, 0, 0, bild.width*zoom, bild.height*zoom)
+						ziel.vortrag.erneuere()
+					}
+				}
+				else{
+					console.log("Normal")
+					canv = bild
+					bild.onload = ()=>{ziel.vortrag.erneuere()}
+				}
+				bild.src = quelle
+			}
+			else
+				canv = quelle
+			let r = {
+				position: position,
+				ziel : ziel,
+				vortrag : ziel.vortrag,
+				canv : canv,
+				frame : function(){
+					let koord = this.koords(this.position(this.ziel.canv.width, this.ziel.canv.height))
+					koord = [koord[0] + (this.ziel.canv.width - koord[2])/2, koord[1] + (this.ziel.canv.height - koord[3])/2, koord[2], koord[3]]
+					ziel.ctx.drawImage(this.canv, koord[0], koord[1], koord[2], koord[3])
+				},
+				koords: function(koord){
+					if(koord.length == 3)
+						koord.push(koord[2]*this.canv.height/this.canv.width)
+					return koord
+				},
+				wandel: function(neupos){
+					let altpos = this.position
+					this.position = neupos
+					this.vortrag.vorplus({hintenRein:()=>{this.position = altpos}})
+					this.vortrag.plus({
+						davor:(t)=>{this.position = (x, y)=>{
+							let a = this.koords(altpos(x,y))
+							let n = this.koords(neupos(x,y))
+							return [a[0] + (n[0] - a[0]) * t, a[1] + (n[1] - a[1]) * t, a[2] + (n[2] - a[2]) * t, a[3] + (n[3] - a[3]) * t]
+						}},
+						vorneRein:()=>{this.position = neupos}
+					})
+				},
+				beginne : function(){
+					this.ziel.inhalte.add(this)
+				},
+				beende : function(){
+					this.ziel.inhalte.delete(this)
+				},
+				start : function(){
+					this.vortrag.plus(anfang(this))
+					this.vortrag.plus({vorneRein:()=>{this.position = position}})
+				},
+				stopp : function(){
+					this.vortrag.plus(ende(this))
+				}
+			}
+			r.start()
+			return r
+		}
+		
+		z = 2
+		v = vortrag()
+		
+		l = leinwand(v)
+		e = ether(l)
+		lern = schild("bild/lernsoftware.svg.png", (b, h)=>[0, 0, 0], e, z*2)
+		v.weiter()
+		
+		lern.wandel((b, h)=>[0,0, b/2])
+		wiss = schild("bild/wissenschaft.svg.png", (b, h)=>[b/2, 0, 0], e, z)
+		v.weiter()
+		
+		lern.wandel((b, h)=>[-b/6, 0, b/3])
+		wiss.wandel((b, h)=>[b/6, 0, b/4])
+		phys = schild("bild/physik.svg.png", (b, h)=>[b*0.1, -b*0.15, 0], e, z)
+		bio = schild("bild/bio.svg.png", (b, h)=>[b*0.32, -b*0.13, 0], e, z)
+		che = schild("bild/chemie.svg.png", (b, h)=>[b*0.4, 0, 0], e, z)
+		inf = schild("bild/informatik.svg.png", (b, h)=>[b*0.32, b*0.13, 0], e, z)
+		mat = schild("bild/mathe.svg.png", (b, h)=>[b*0.1, b*0.15, 0], e, z)
+		v.weiter()
+		
+		phys.wandel((b, h)=>[b*0.1, -b*0.15, b/7])
+		bio.wandel((b, h)=>[b*0.32, -b*0.13, b/7])
+		che.wandel((b, h)=>[b*0.4, 0, b/7])
+		inf.wandel((b, h)=>[b*0.32, b*0.13, b/7])
+		mat.wandel((b, h)=>[b*0.1, b*0.15, b/7])
+		onl = schild("bild/online.svg.png", (b, h)=>[-b*0.4, b*0.3, 0], e, z)
+		v.weiter()
+		
+		//lern.wandel((b, h)=>[b/3, h/2, 0])
+		onl.wandel((b, h)=>[b*-0.46, b*0.18, b/4])
+		e.wandel((x,y)=>[x*0.34, -x*0.16, 1.01])
+		einf = schild("bild/einfach.svg.png", (b, h)=>[b*-0.67, b*0.18, 0], e, z)
+		flex = schild("bild/flexibel.svg.png", (b, h)=>[b*-0.63, b*0.32, 0], e, z)
+		intu = schild("bild/intuitiv.svg.png", (b, h)=>[b*-0.46, b*0.34, 0], e, z)
+		plat = schild("bild/plattform.svg.png", (b, h)=>[b*-0.28, b*0.31, 0], e, z)
+		v.weiter()
+		
+		
+		einf.wandel((b, h)=>[b*-0.67, b*0.18, b/7])
+		flex.wandel((b, h)=>[b*-0.63, b*0.32, b/7])
+		intu.wandel((b, h)=>[b*-0.46, b*0.34, b/7])
+		plat.wandel((b, h)=>[b*-0.28, b*0.31, b/7])
+		v.weiter()
+		
+		e.wandel((x,y)=>[x*0.1, -x*0.08, 0.8])
+		lize = schild("bild/lizenzen.svg.png", (b, h)=>[-b*0.69, -b*0.29, 0], e, z)
+		v.weiter()
+		
+		e.wandel((x,y)=>[x*0.32, x*0.15, 0.98])
+		lize.wandel((b, h)=>[b*-0.45, -b*0.18, b/4])
+		uni = schild("bild/unis.svg.png", (b, h)=>[b*-0.6, -b*0.06, 0], e, z)
+		buch = schild("bild/bucher.svg.png", (b, h)=>[b*-0.65, -b*0.26, 0], e, z)
+		schu = schild("bild/schulen.svg.png", (b, h)=>[b*-0.44, -b*0.34, 0], e, z)
+		forsch = schild("bild/forschung.svg.png", (b, h)=>[b*-0.27, -b*0.25, 0], e, z)
+		v.weiter()
+		
+		uni.wandel((b, h)=>[b*-0.6, -b*0.06, b/7])
+		buch.wandel((b, h)=>[b*-0.65, -b*0.26, b/7])
+		schu.wandel((b, h)=>[b*-0.44, -b*0.34, b/7])
+		forsch.wandel((b, h)=>[b*-0.27, -b*0.25, b/7])
+		v.weiter()
+		
+		e.wandel((x,y)=>[x/9, 0, 0.6])
+		l.stopp()
+		v.springe()
+		
+		temp = leinwand(v)
+		schild("bild/wozu.svg.png", (b,h)=>[0,0, b*0.8], temp, 2)
+		temp.stopp()
+		v.springe()
+		
+		scri = webseite(v, "https://home.uni-leipzig.de/~tet/wp-content/uploads/2017/01/Skript.pdf#zoom=200")
+		scri.stopp()
+		v.springe()
+		
+		temp = leinwand(v)
+		schild("bild/frage.svg.png", (b,h)=>[0,0, b*0.6], temp, 2)
+		temp.stopp()
+		v.springe()
+		
+		scri = webseite(v, "https://quantsimulant.debablo.de")
+		scri.stopp()
+		v.springe()
+		
+		l2 = leinwand(v)
+		e2 = ether(l2)
+		fra = schild("bild/frage.svg.png", (b,h)=>[0,0, b*0.6], e2, 2)
+		plan = schild("bild/plan.svg.png", (b, h)=>[0, b*0.5, 0], e2, z*2)
+		v.weiter()
+		
+		plan.wandel((b, h)=>[0,0, b/2])
+		fra.wandel((b,h)=>[0,-b*1, 0])
+		gleich = schild("bild/gleichung.svg.png", (b, h)=>[b*0.234, b*0.3, 0], e2, z*2)
+		well = schild("bild/welle.svg.png", (b, h)=>[-b*0.234, b*0.3, 0], e2, z*2)
+		v.weiter()
+		
+		gleich.wandel((b, h)=>[b*0.26, b*0.3, b*0.4])
+		well.wandel((b, h)=>[-b*0.26, b*0.3, b*0.4])
+		plu = schild("bild/plus.svg.png", (b, h)=>[0, b*0.3, 0], e2, z*2)
+		e2.wandel((b, h)=>[0, -b*0.08, 0.7])
+		v.weiter()
+		
+		plu.wandel((b, h)=>[0, b*0.3, b*0.04])
+		markt = schild("bild/markt.svg.png", (b, h)=>[0, b, 0], e2, z*2)
+		v.weiter()
+		
+		markt.wandel((b, h)=>[0,b, b/2])
+		uniz = schild("bild/unizahl.svg.png", (b, h)=>[-b*0.3, b*1.3, 0], e2, z*2)
+		gymz = schild("bild/gymzahl.svg.png", (b, h)=>[0, b*1.3, 0], e2, z*2)
+		engl = schild("bild/englisch.svg.png", (b, h)=>[b*0.3, b*1.3, 0], e2, z*2)
+		e2.wandel((b, h)=>[0, -b, 1])
+		v.weiter()
+		
+		uniz.wandel((b, h)=>[-b*0.4, b*1.3, b*0.3])
+		gymz.wandel((b, h)=>[0, b*1.3, b*0.3])
+		engl.wandel((b, h)=>[b*0.4, b*1.3, b*0.3])
+		e2.wandel((b, h)=>[0, -b*0.8, 0.7])
+		team = schild("bild/team.svg.png", (b, h)=>[0, 2*b, 0], e2, z*2)
+		v.weiter()
+		
+		team.wandel((b, h)=>[0,2*b, b/2])
+		pro = schild("bild/programmierer.svg.png", (b, h)=>[-b*0.3, b*2.3, 0], e2, z*2)
+		phy = schild("bild/physiker.svg.png", (b, h)=>[0, b*2.3, 0], e2, z*2)
+		jur = schild("bild/jurist.svg.png", (b, h)=>[b*0.3, b*2.3, 0], e2, z*2)
+		e2.wandel((b, h)=>[0, -2*b, 1])
+		v.weiter()
+		
+		pro.wandel((b, h)=>[-b*0.4, b*2.3, b*0.3])
+		phy.wandel((b, h)=>[0, b*2.3, b*0.3])
+		jur.wandel((b, h)=>[b*0.4, b*2.3, b*0.3])
+		e2.wandel((b, h)=>[0, -b*1.5, 0.7])
+		schild("bild/dank.svg.png", (b, h)=>[0, b*3, b*0.6], e2, z*2)
+		v.weiter()
+		
+		e2.wandel((b, h)=>[0, -3*b, 1])
+		v.weiter()
+		
+		e2.wandel((b, h)=>[0, -4*b, 1])
+		
+		v.beginne()
+		
+		
+		
+		
+		
+		
+	</script>
+</html>

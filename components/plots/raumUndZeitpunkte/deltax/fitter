@@ -1,0 +1,4 @@
+#!/bin/gnuplot
+plf = "../t_m1o50zi1000ri1000zp49rp50mae1mg1oae1og1zpae50zpg40rpae50rpg40w1f64.txt"
+g(x) = b*x**a + c
+fit g(x) plf every ::3:39:30:39 using (1/($4-1)):($6/$7) via a, b, c

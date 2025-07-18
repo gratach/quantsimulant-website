@@ -1,0 +1,4 @@
+#!/bin/gnuplot
+plf = "m1o50zi1000ri1000zp10000rp10mae1mg1oae1og1zpae50zpg1rpae10rpg380w1f64.txt"
+g(x) = b*x**a
+fit g(x) plf every ::100::375 using (1/($4-1)):($6/$7) via a, b
